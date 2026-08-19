@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Test Reminder on New File",
+      "trigger": "PostFileCreate",
+      "description": "After creating a new file, reminds the agent to check if unit tests are needed for the new component.",
+      "matcher": "\\.(cs)$",
+      "action": {
+        "type": "agent",
+        "prompt": "A new C# file was created. Evaluate if this file needs a corresponding unit test: Handlers (Commands/Queries) ALWAYS need tests. Validators ALWAYS need tests. Domain entities with business logic NEED tests. DTOs, extension methods, and simple configs do NOT need tests. If tests are needed, note it as a pending task but do not create them unless the user explicitly asks."
+      }
+    }
+  ]
+}

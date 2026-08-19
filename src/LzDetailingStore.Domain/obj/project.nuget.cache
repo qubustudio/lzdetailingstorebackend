@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "VbJkT+kPsBo=",
+  "success": true,
+  "projectFilePath": "D:\\Carlos Quiroz\\Documents\\9.- LzDetailingStore\\4.- Desarollo\\4.2.- backend\\lzdetailingstorebackend\\src\\LzDetailingStore.Domain\\LzDetailingStore.Domain.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Carlos Quiroz\\.nuget\\packages\\mediatr.contracts\\2.0.1\\mediatr.contracts.2.0.1.nupkg.sha512"
+  ],
+  "logs": []
+}

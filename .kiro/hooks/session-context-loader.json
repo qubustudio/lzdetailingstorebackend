@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Load Project Context on Session Start",
+      "trigger": "SessionStart",
+      "description": "On session start, reminds the agent to load project context from engram and steering files before doing any work.",
+      "action": {
+        "type": "agent",
+        "prompt": "This is the LzDetailingStore Backend project (.NET 10, C#, PostgreSQL). Before doing any work: 1) Read .kiro/steering/ files for architecture decisions, conventions, API design, and database model. 2) Search engram for 'lzdetailingstorebackend' to recover prior session context and decisions. 3) Check if SDD artifacts exist via mem_search for the current change. The project uses Clean Architecture + Vertical Slices + CQRS with MediatR. All responses must be in Mexican Spanish."
+      }
+    }
+  ]
+}

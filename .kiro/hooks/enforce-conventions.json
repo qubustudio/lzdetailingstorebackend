@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Enforce Project Conventions",
+      "trigger": "PreToolUse",
+      "description": "Before writing or editing any file, ensures the agent reviews conventions from steering files (naming, architecture, patterns).",
+      "matcher": "fs_write|str_replace|fs_append",
+      "action": {
+        "type": "agent",
+        "prompt": "Before writing this file, verify: 1) Naming follows conventions.md (PascalCase classes, _camelCase fields, etc.) 2) File is in the correct layer per architecture.md (Domain has zero infra deps, Application defines interfaces) 3) CQRS naming: Commands={Verb}{Entity}Command, Queries=Get{Entity}Query 4) One class per file, file name matches class name 5) Use file-scoped namespaces and primary constructors where appropriate 6) DTOs use records, entities inherit BaseEntity 7) No data annotations on entities (use Fluent API configs)"
+      }
+    }
+  ]
+}

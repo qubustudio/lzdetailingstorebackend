@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LzDetailingStore.Api/LzDetailingStore.Api.csproj" />
+    <Project Path="src/LzDetailingStore.Application/LzDetailingStore.Application.csproj" />
+    <Project Path="src/LzDetailingStore.Domain/LzDetailingStore.Domain.csproj" />
+    <Project Path="src/LzDetailingStore.Infrastructure/LzDetailingStore.Infrastructure.csproj" />
+    <Project Path="src/LzDetailingStore.SharedKernel/LzDetailingStore.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LzDetailingStore.ArchTests/LzDetailingStore.ArchTests.csproj" />
+    <Project Path="tests/LzDetailingStore.IntegrationTests/LzDetailingStore.IntegrationTests.csproj" />
+    <Project Path="tests/LzDetailingStore.UnitTests/LzDetailingStore.UnitTests.csproj" />
+  </Folder>
+</Solution>

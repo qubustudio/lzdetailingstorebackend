@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Format C# on Save",
+      "trigger": "PostFileSave",
+      "description": "Reminds to format C# files after saving. Will run dotnet format once the project is scaffolded.",
+      "matcher": "\\.(cs|csproj)$",
+      "action": {
+        "type": "command",
+        "command": "echo \"C# file saved — reminder: run dotnet format before committing\""
+      }
+    }
+  ]
+}
