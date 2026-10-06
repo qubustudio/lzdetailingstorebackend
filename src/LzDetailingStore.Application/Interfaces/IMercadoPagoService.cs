@@ -6,6 +6,8 @@ public record MercadoPagoItem(string Title, int Quantity, decimal UnitPrice);
 
 public record MercadoPagoBackUrls(string Success, string Failure, string Pending);
 
+public record MercadoPagoPreferenceResult(string PreferenceId, string InitPoint);
+
 public record MercadoPagoPaymentInfo(
     string PaymentId,
     string Status,
@@ -14,7 +16,7 @@ public record MercadoPagoPaymentInfo(
 
 public interface IMercadoPagoService
 {
-    Task<Result<string>> CreatePreferenceAsync(
+    Task<Result<MercadoPagoPreferenceResult>> CreatePreferenceAsync(
         string externalReference,
         IList<MercadoPagoItem> items,
         MercadoPagoBackUrls backUrls,

@@ -100,13 +100,13 @@ public sealed class CreateCheckoutCommandHandler(
             order.Id.ToString(), mpItems, backUrls, ct);
 
         if (preferenceResult.IsFailure)
-            return Result<CheckoutResultDto>.Failure(preferenceResult.Error!, 
+            return Result<CheckoutResultDto>.Failure(preferenceResult.Error!,
                 preferenceResult.StatusCode ?? 500);
 
-        // Store preference ID
-        order.MercadoPagoPreferenceId = order.Id.ToString();
+        // Store the real MercadoPago preference ID (not the order ID)
+        order.MercadoPagoPreferenceId = preferenceResult.Value!.PreferenceId;
         await unitOfWork.SaveChangesAsync(ct);
 
-        return new CheckoutResultDto(order.Id, preferenceResult.Value!);
+        return new CheckoutResultDto(order.Id, preferenceResult.Value!.InitPoint);
     }
 }
