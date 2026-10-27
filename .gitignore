@@ -53,6 +53,10 @@ _ReSharper*/
 !*.env.example
 docker/.env
 appsettings.*.local.json
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+!appsettings.*.json.example
 secrets.json
 
 # OS files
