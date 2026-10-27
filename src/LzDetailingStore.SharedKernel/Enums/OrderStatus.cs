@@ -6,5 +6,7 @@ public enum OrderStatus
     Pagada,
     Enviada,
     Entregada,
-    Cancelada
+    Cancelada,
+    Rechazada,
+    Reembolsada
 }

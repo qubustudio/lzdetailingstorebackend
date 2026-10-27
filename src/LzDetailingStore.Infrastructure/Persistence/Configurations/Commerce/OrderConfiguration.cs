@@ -12,6 +12,18 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.HasIndex(o => o.UserId);
         builder.HasIndex(o => o.Status);
 
+        // Optimistic concurrency using PostgreSQL's system column xmin.
+        // xmin is a hidden system column that PostgreSQL updates automatically
+        // on every row modification — ideal as a concurrency token.
+        // IsConcurrencyToken + ValueGeneratedOnAddOrUpdate tells EF to read it
+        // without trying to create it (it already exists on every PG table).
+        // No migration needed: xmin is never created by EF, it is always there.
+        builder.Property(o => o.Version)
+            .HasColumnName("xmin")
+            .HasColumnType("xid")
+            .ValueGeneratedOnAddOrUpdate()
+            .IsConcurrencyToken();
+
         builder.Property(o => o.Status)
             .HasConversion<string>()
             .HasMaxLength(20);

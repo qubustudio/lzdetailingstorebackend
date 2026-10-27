@@ -17,6 +17,10 @@ public sealed class Order : AuditableEntity
     public string? TrackingUrl { get; set; }
     public string? Notes { get; set; }
 
+    // Optimistic concurrency token mapped to PostgreSQL's xmin system column.
+    // Prevents concurrent webhook processing from applying the same transition twice.
+    public uint Version { get; set; }
+
     public ShippingAddress ShippingAddress { get; set; } = null!;
     public ICollection<OrderItem> Items { get; set; } = [];
 }

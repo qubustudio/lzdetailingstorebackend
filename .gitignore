@@ -1,0 +1,78 @@
+# ---------------------------------------------
+# .gitignore — LzDetailingStore Backend (.NET 10)
+# ---------------------------------------------
+
+# Build output
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+build/
+bld/
+[Ll]og/
+[Ll]ogs/
+
+# .NET / MSBuild
+project.lock.json
+project.fragment.lock.json
+artifacts/
+*.binlog
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Test / coverage results
+[Tt]est[Rr]esult*/
+*.trx
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+coverage*.info
+TestResults/
+.msCoverageSourceRootsMapping_*
+CoverletSourceRootsMapping_*
+
+# IDE / editor
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.idea/
+*.swp
+*~
+
+# Rider / ReSharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# Secrets / environment
+.env
+*.env
+!*.env.example
+docker/.env
+appsettings.*.local.json
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+!appsettings.*.json.example
+secrets.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local scratch / build logs committed by mistake
+build-*.txt
+build_*.txt
+test-output.txt
+test-stderr.txt
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+
+# EF Core — Migrations/ are source and MUST stay tracked (not ignored here)
