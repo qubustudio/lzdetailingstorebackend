@@ -1,0 +1,38 @@
+# Build output
+**/bin/
+**/obj/
+**/out/
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+**/*.user
+
+# Git / tooling
+.git/
+.gitignore
+.github/
+.atl/
+
+# Tests (not needed in the runtime image build)
+tests/
+
+# Docs and local assets
+docs/
+ListaPrecios/
+README.md
+
+# Secrets / environment — never ship these into the build context
+**/.env
+docker/.env
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Staging.json
+**/appsettings.*.local.json
+**/secrets.json
+
+# Docker files themselves
+Dockerfile
+.dockerignore
+docker/

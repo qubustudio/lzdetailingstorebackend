@@ -50,7 +50,10 @@ _ReSharper*/
 # Secrets / environment
 .env
 *.env
+.env.*
 !*.env.example
+!.env.example
+!.env.*.example
 docker/.env
 appsettings.*.local.json
 appsettings.Development.json
@@ -65,6 +68,7 @@ Thumbs.db
 desktop.ini
 
 # Local scratch / build logs committed by mistake
+.docker-build.log
 build-*.txt
 build_*.txt
 test-output.txt

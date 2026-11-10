@@ -1,0 +1,72 @@
+# Production compose for LzDetailingStore backend.
+# Secrets are injected via an environment file (docker/.env.prod) that is NOT
+# committed. See docker/.env.prod.example for the required keys.
+#
+# Usage (from the repo root):
+#   docker compose -f docker/docker-compose.prod.yml --env-file docker/.env.prod up -d --build
+
+# Dedicated project name so this stack never collides with the dev compose
+# (docker/docker-compose.yml), which also defines a "db" service and volume.
+name: lzdetailingstore-prod
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: lzdetailingstore-api:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Jwt__Secret: "${JWT_SECRET}"
+      Jwt__Issuer: "${JWT_ISSUER}"
+      Jwt__Audience: "${JWT_AUDIENCE}"
+      Jwt__ExpiresInHours: "${JWT_EXPIRES_IN_HOURS}"
+      Banxico__BmxToken: "${BANXICO_TOKEN}"
+      MercadoPago__AccessToken: "${MERCADOPAGO_ACCESS_TOKEN}"
+      MercadoPago__WebhookSecret: "${MERCADOPAGO_WEBHOOK_SECRET}"
+      App__FrontendUrl: "${FRONTEND_URL}"
+      Storage__ServiceUrl: "${STORAGE_SERVICE_URL}"
+      Storage__BucketName: "${STORAGE_BUCKET_NAME}"
+      Storage__CdnBaseUrl: "${STORAGE_CDN_BASE_URL}"
+      Storage__AccessKey: "${STORAGE_ACCESS_KEY}"
+      Storage__SecretKey: "${STORAGE_SECRET_KEY}"
+      Cors__AllowedOrigins__0: "${FRONTEND_URL}"
+      OpenTelemetry__OtlpEndpoint: "${OTLP_ENDPOINT}"
+    # Expose only to the host loopback; a Cloudflare Tunnel (cloudflared) on the
+    # VPS points to this port. Adjust if you front it with a reverse proxy.
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      # Optional: mount the ONNX model so AI recommendations are enabled.
+      # The app runs fine without it (embeddings become unavailable).
+      - ./models:/app/models:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
