@@ -79,3 +79,7 @@ test-stderr.txt
 
 # Local database backups
 backups/
+
+# Generated output of tools/PdfCatalogExtractor
+tools/PdfCatalogExtractor/output.txt
+tools/PdfCatalogExtractor/catalog_extracted.csv
