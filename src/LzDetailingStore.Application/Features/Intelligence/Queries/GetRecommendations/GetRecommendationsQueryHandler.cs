@@ -38,6 +38,7 @@ public sealed class GetRecommendationsQueryHandler(DbContext dbContext)
                 request.ProductId, vectorString)
             .Include(p => p.Brand)
             .Include(p => p.Category)
+            .Include(p => p.Variants)
             .ToListAsync(ct);
 
         // Shuffle and take requested count (controlled randomness)
@@ -51,7 +52,13 @@ public sealed class GetRecommendationsQueryHandler(DbContext dbContext)
                 p.Id, p.Name, p.Slug, p.Description,
                 p.PrecioBase, p.PrecioOriginal,
                 p.ImageUrl, p.ImageAlt, p.Badge,
-                p.Brand.Nombre, p.Category.Nombre))
+                p.Brand.Nombre, p.Category.Nombre,
+                p.Variants
+                    .Where(v => v.IsActive)
+                    .OrderBy(v => v.SortOrder)
+                    .ThenBy(v => v.PrecioVenta)
+                    .Select(v => new ProductListVariantDto(v.Id, v.Nombre, v.PrecioVenta, v.Stock > 0))
+                    .ToList()))
             .ToList();
 
         return result;

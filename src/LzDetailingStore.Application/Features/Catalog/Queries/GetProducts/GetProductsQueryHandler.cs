@@ -55,7 +55,14 @@ public sealed class GetProductsQueryHandler(DbContext dbContext)
                 p.Id, p.Name, p.Slug, p.Description,
                 p.PrecioBase, p.PrecioOriginal,
                 p.ImageUrl, p.ImageAlt, p.Badge,
-                p.Brand.Nombre, p.Category.Nombre))
+                p.Brand.Nombre, p.Category.Nombre,
+                p.Variants
+                    .Where(v => v.IsActive)
+                    .OrderBy(v => v.SortOrder)
+                    .ThenBy(v => v.PrecioVenta)
+                    .Select(v => new ProductListVariantDto(v.Id, v.Nombre, v.PrecioVenta, v.Stock > 0))
+                    .ToList()))
+            .AsSplitQuery()
             .ToListAsync(ct);
 
         return new PagedResult<ProductListDto>(products, total, page, totalPages);

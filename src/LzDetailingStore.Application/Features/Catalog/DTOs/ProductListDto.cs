@@ -11,4 +11,5 @@ public sealed record ProductListDto(
     string? ImageAlt,
     string? Badge,
     string BrandName,
-    string CategoryName);
+    string CategoryName,
+    IList<ProductListVariantDto> Variants);
