@@ -29,7 +29,7 @@ public sealed class UpdateCartItemCommandHandler(
 
         if (request.Quantity > variant.Stock)
             return Result.Failure(new Error("INSUFFICIENT_STOCK",
-                $"Stock insuficiente. Disponible: {variant.Stock}."));
+                "Producto no disponible en la cantidad solicitada."));
 
         cartItem.Quantity = request.Quantity;
         await unitOfWork.SaveChangesAsync(ct);

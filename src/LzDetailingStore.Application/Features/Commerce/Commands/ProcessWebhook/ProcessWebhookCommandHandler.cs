@@ -1,5 +1,4 @@
 using LzDetailingStore.Application.Interfaces;
-using LzDetailingStore.Domain.Entities.Catalog;
 using LzDetailingStore.Domain.Entities.Commerce;
 using LzDetailingStore.SharedKernel;
 using LzDetailingStore.SharedKernel.Enums;
@@ -18,7 +17,11 @@ public sealed class ProcessWebhookCommandHandler(
     : IRequestHandler<ProcessWebhookCommand, Result>
 {
     // Terminal states: once an order reaches any of these, further webhooks are
-    // ignored so stock side effects are never applied twice.
+    // ignored so order side effects are never applied twice.
+    //
+    // Stock is NOT touched here: the store has no link to the physical inventory,
+    // so ProductVariant.Stock works as an availability flag (99 = available,
+    // 0 = sold out / on request) that only an administrator changes.
     private static readonly OrderStatus[] TerminalStates =
     [
         OrderStatus.Pagada,
@@ -69,20 +72,19 @@ public sealed class ProcessWebhookCommandHandler(
         }
 
         // Idempotent guard: if the order is already in a terminal state, a prior
-        // webhook already processed it (including any stock side effects). Skip.
+        // webhook already processed it. Skip.
         if (TerminalStates.Contains(order.Status))
             return Result.Success();
 
         order.MercadoPagoPaymentId = payment.PaymentId;
 
-        // Map MercadoPago payment status to our order status. Stock side effects
+        // Map MercadoPago payment status to our order status. Side effects
         // run exactly once here because the order is still non-terminal (the guard
         // above and the xmin concurrency token together prevent double application).
         switch (payment.Status)
         {
             case "approved":
                 order.Status = OrderStatus.Pagada;
-                await DecrementStockAsync(order, ct);
                 await ClearUserCartAsync(order.UserId, ct);
                 logger.LogInformation("Order {OrderId} paid via MercadoPago payment {PaymentId}",
                     orderId, payment.PaymentId);
@@ -103,14 +105,13 @@ public sealed class ProcessWebhookCommandHandler(
             case "refunded":
             case "charged_back":
                 order.Status = OrderStatus.Reembolsada;
-                await RestoreStockAsync(order, ct);
                 logger.LogInformation("Order {OrderId} refunded (MP status: {Status})",
                     orderId, payment.Status);
                 break;
 
             default:
                 // pending, in_process, authorized, etc. — leave as Pendiente.
-                // No stock side effects; only the payment id is recorded.
+                // Only the payment id is recorded.
                 logger.LogInformation("Order {OrderId} pending (MP status: {Status})",
                     orderId, payment.Status);
                 break;
@@ -123,7 +124,7 @@ public sealed class ProcessWebhookCommandHandler(
         catch (DbUpdateConcurrencyException)
         {
             // A concurrent webhook already transitioned this order. The other
-            // request owns the state change and its stock side effects; treat
+            // request owns the state change and its side effects; treat
             // this one as a successful no-op to stay idempotent.
             logger.LogInformation(
                 "Concurrent webhook detected for order {OrderId}; skipping duplicate processing.",
@@ -132,35 +133,6 @@ public sealed class ProcessWebhookCommandHandler(
         }
 
         return Result.Success();
-    }
-
-    private async Task DecrementStockAsync(Order order, CancellationToken ct)
-    {
-        var variants = await LoadVariantsAsync(order, ct);
-
-        foreach (var item in order.Items)
-            if (variants.TryGetValue(item.VariantId, out var variant))
-                variant.Stock = Math.Max(0, variant.Stock - item.Quantity);
-    }
-
-    private async Task RestoreStockAsync(Order order, CancellationToken ct)
-    {
-        // On refund/chargeback, return the reserved units back to stock.
-        var variants = await LoadVariantsAsync(order, ct);
-
-        foreach (var item in order.Items)
-            if (variants.TryGetValue(item.VariantId, out var variant))
-                variant.Stock += item.Quantity;
-    }
-
-    private async Task<Dictionary<Guid, ProductVariant>> LoadVariantsAsync(
-        Order order, CancellationToken ct)
-    {
-        var variantIds = order.Items.Select(i => i.VariantId).ToList();
-
-        return await dbContext.Set<ProductVariant>()
-            .Where(v => variantIds.Contains(v.Id))
-            .ToDictionaryAsync(v => v.Id, ct);
     }
 
     private async Task ClearUserCartAsync(Guid userId, CancellationToken ct)

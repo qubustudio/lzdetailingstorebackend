@@ -86,17 +86,18 @@ public sealed class ProcessWebhookCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_PagoAprobado_DescuentaStockUnaVezYMarcaPagada()
+    public async Task Handle_PagoAprobado_MarcaPagadaSinTocarStock()
     {
         await using var ctx = NewContext();
-        var (order, variant) = await SeedOrderAsync(ctx, OrderStatus.Pendiente, stock: 10, quantity: 2);
+        var (order, variant) = await SeedOrderAsync(ctx, OrderStatus.Pendiente, stock: 99, quantity: 2);
         ArrangeValidPayment(order.Id, "approved");
 
         var result = await CreateHandler(ctx).Handle(PaymentCommand(), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
+        // El stock es una bandera de disponibilidad que solo cambia un administrador.
         var updated = await ctx.ProductVariants.FindAsync(variant.Id);
-        updated!.Stock.Should().Be(8);
+        updated!.Stock.Should().Be(99);
         (await ctx.Orders.FindAsync(order.Id))!.Status.Should().Be(OrderStatus.Pagada);
     }
 
@@ -118,7 +119,7 @@ public sealed class ProcessWebhookCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OrdenYaPagada_NoDescuentaStockDeNuevo()
+    public async Task Handle_OrdenYaPagada_NoReprocesa()
     {
         await using var ctx = NewContext();
         var (order, variant) = await SeedOrderAsync(ctx, OrderStatus.Pagada, stock: 8, quantity: 2);
@@ -127,21 +128,20 @@ public sealed class ProcessWebhookCommandHandlerTests
         var result = await CreateHandler(ctx).Handle(PaymentCommand(), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        // Guard de estado terminal: el stock NO se vuelve a descontar.
         (await ctx.ProductVariants.FindAsync(variant.Id))!.Stock.Should().Be(8);
     }
 
     [Fact]
-    public async Task Handle_Reembolso_RestauraStockYMarcaReembolsada()
+    public async Task Handle_Reembolso_MarcaReembolsadaSinTocarStock()
     {
         await using var ctx = NewContext();
-        var (order, variant) = await SeedOrderAsync(ctx, OrderStatus.Pendiente, stock: 5, quantity: 3);
+        var (order, variant) = await SeedOrderAsync(ctx, OrderStatus.Pendiente, stock: 99, quantity: 3);
         ArrangeValidPayment(order.Id, "refunded");
 
         var result = await CreateHandler(ctx).Handle(PaymentCommand(), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        (await ctx.ProductVariants.FindAsync(variant.Id))!.Stock.Should().Be(8);
+        (await ctx.ProductVariants.FindAsync(variant.Id))!.Stock.Should().Be(99);
         (await ctx.Orders.FindAsync(order.Id))!.Status.Should().Be(OrderStatus.Reembolsada);
     }
 
