@@ -76,3 +76,6 @@ test-stderr.txt
 .nuget/
 
 # EF Core — Migrations/ are source and MUST stay tracked (not ignored here)
+
+# Local database backups
+backups/
