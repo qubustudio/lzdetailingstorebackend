@@ -36,7 +36,7 @@ public sealed class GetProductBySlugQueryHandler(DbContext dbContext)
                 product.Category.Slug, product.Category.Descripcion, product.Category.Orden),
             product.Variants.Select(v => new ProductVariantDto(
                 v.Id, v.Sku, v.Nombre, v.PrecioVenta,
-                v.SizeValue, v.SizeUnit, v.Stock, v.IsActive, v.SortOrder)).ToList(),
+                v.SizeValue, v.SizeUnit, v.Stock > 0, v.IsActive, v.SortOrder)).ToList(),
             product.Images.Select(i => new ProductImageDto(i.Id, i.ImageUrl, i.ImageAlt, i.Orden)).ToList(),
             product.Specs.Select(s => new ProductSpecDto(s.Id, s.Label, s.Value, s.Orden)).ToList(),
             product.ApplicationSteps.Select(a => new ProductStepDto(a.Id, a.StepNumber, a.Title, a.Description)).ToList());

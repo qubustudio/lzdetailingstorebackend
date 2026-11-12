@@ -16,4 +16,4 @@ public sealed record CartItemDto(
     decimal UnitPrice,
     int Quantity,
     decimal Subtotal,
-    int StockAvailable);
+    bool Disponible);
