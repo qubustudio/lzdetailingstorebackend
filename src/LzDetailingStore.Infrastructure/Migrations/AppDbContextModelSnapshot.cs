@@ -407,10 +407,6 @@ namespace LzDetailingStore.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("description");
 
-                    b.PrimitiveCollection<float[]>("Embedding")
-                        .HasColumnType("real[]")
-                        .HasColumnName("embedding");
-
                     b.Property<string>("ImageAlt")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")

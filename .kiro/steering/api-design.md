@@ -55,7 +55,6 @@ https://api.lzdetailing.com/v1
 | GET/POST | `/admin/productos` | List/Create products |
 | GET/PUT/DELETE | `/admin/productos/:id` | Read/Update/Delete product |
 | POST | `/admin/productos/:id/imagenes` | Upload product images |
-| POST | `/admin/productos/:id/generar-embedding` | Regenerate AI embedding |
 | GET/POST/PUT/DELETE | `/admin/productos/:id/variantes` | Manage product variants |
 | GET/POST | `/admin/categorias` | List/Create categories |
 | GET/PUT/DELETE | `/admin/categorias/:id` | Read/Update/Delete category |
