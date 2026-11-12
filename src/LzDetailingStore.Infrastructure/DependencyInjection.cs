@@ -57,6 +57,17 @@ public static class DependencyInjection
         services.AddSingleton<IEmbeddingService, AI.OnnxEmbeddingService>();
         services.AddScoped<IEmbeddingJobService, Jobs.RegenerateEmbeddingJob>();
 
+        // AI product relations (Anthropic via Microsoft.Extensions.AI). The chat client is only registered
+        // when an API key is configured; without it the app still starts and generation returns 503.
+        var anthropicOptions = configuration.GetSection(AI.AnthropicOptions.SectionName).Get<AI.AnthropicOptions>()
+                               ?? new AI.AnthropicOptions();
+        if (string.IsNullOrWhiteSpace(anthropicOptions.ApiKey))
+            anthropicOptions.ApiKey = configuration["ANTHROPIC_API_KEY"];
+        if (!string.IsNullOrWhiteSpace(anthropicOptions.ApiKey))
+            services.AddSingleton(_ => AI.AnthropicChatClientFactory.Create(anthropicOptions));
+        services.AddScoped<IProductRelationJobScheduler, Jobs.HangfireProductRelationJobScheduler>();
+        services.AddTransient<Jobs.GenerateProductRelationsJob>();
+
         // Admin operations (bulk import/export)
         services.AddScoped<IBulkImportService, ExcelBulkImportService>();
         services.AddScoped<IBulkExportService, ExcelBulkExportService>();

@@ -21,11 +21,37 @@
 |--------|----------|-------------|
 | GET | `/api/v1/productos` | List products (paginated, filterable) |
 | GET | `/api/v1/productos/{slug}` | Product detail by slug |
-| GET | `/api/v1/productos/{id}/recomendaciones` | AI-powered product recommendations |
+| GET | `/api/v1/productos/{id}/recomendaciones` | Curated product recommendations (complementary + similar) |
 | GET | `/api/v1/marcas` | List brands |
 | GET | `/api/v1/categorias` | List categories |
 
 **Query params for `/productos`**: `page`, `limit`, `brandId`, `categoryId`, `minPrice`, `maxPrice`, `search`, `sortBy` (price_asc, price_desc, name, newest)
+
+### `GET /api/v1/productos/{id}/recomendaciones`
+
+Returns the **approved** relations of a product, split by type. Only related products that are visible
+(active, with at least one active presentation in stock) are returned, ordered by the admin-defined order.
+
+- **Query params**: `count` (per type, default `6`, clamped to `1..6`)
+- **404** when the product does not exist or is inactive.
+
+```json
+{
+  "complementarios": [
+    {
+      "id": "uuid", "name": "...", "slug": "...", "description": "...",
+      "precioBase": 199.00, "precioOriginal": null,
+      "imageUrl": "...", "imageAlt": "...", "badge": null,
+      "brandName": "...", "categoryName": "...",
+      "variants": [ { "id": "uuid", "nombre": "500 ml", "precioVenta": 199.00, "disponible": true } ],
+      "reason": "Una frase en español que explica por qué conviene este producto."
+    }
+  ],
+  "similares": [ /* same shape */ ]
+}
+```
+
+Stock quantities and cost are never exposed — variants only carry the `disponible` flag.
 
 ---
 
@@ -94,6 +120,40 @@
 | DELETE | `/api/v1/admin/productos/imagenes/{id}` | productos.eliminar | Delete image |
 | PUT | `/api/v1/admin/productos/{id}/specs` | productos.editar | Manage specs |
 | PUT | `/api/v1/admin/productos/{id}/pasos` | productos.editar | Manage steps |
+
+---
+
+## Admin - Recommendations (JWT + `recomendaciones.gestionar`)
+
+AI-assisted product relations. Claude proposes relations as **drafts** (`borrador`); an admin approves,
+rejects, edits or reorders them. Only approved relations reach the public endpoint.
+The permission is seeded for `SuperAdmin` and `Admin` (not `Cliente`).
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/admin/recomendaciones/generar` | Enqueue AI generation (Hangfire fire-and-forget) → `202` |
+| GET | `/api/v1/admin/recomendaciones` | Paginated list of relations |
+| POST | `/api/v1/admin/recomendaciones` | Create a manual relation (approved immediately) → `201` |
+| PATCH | `/api/v1/admin/recomendaciones/{id}` | Change status and/or reason |
+| PUT | `/api/v1/admin/recomendaciones/producto/{productId}/orden` | Reorder a product's relations of one type |
+| DELETE | `/api/v1/admin/recomendaciones/{id}` | Delete a relation |
+
+**Values**: `tipo` = `complementario` \| `similar`; `status`/`estado` = `borrador` \| `aprobado` \| `rechazado`; `source` = `ia` \| `manual`.
+
+**`POST /generar`** — body `{ "mode": "nuevos" | "completar" }`
+- `nuevos`: products with no relations at all; also proposes the reverse direction (existing products that should list the new one).
+- `completar`: products with fewer than 2 visible approved relations of a type.
+- Response `202`: `{ "jobId": "123", "mode": "nuevos" }`. Returns **503** `AI_NOT_CONFIGURED` ("La generación de recomendaciones no está configurada.") when no Anthropic API key is configured.
+- Rejected pairs are never proposed again; failed batches are skipped and logged (see the Hangfire dashboard in dev).
+
+**`GET /`** — query `estado`, `productId`, `tipo`, `page` (default 1), `pageSize` (default 20, max 100). Items:
+`{ id, productId, productName, relatedProductId, relatedProductName, tipo, reason, status, source, sortOrder, createdAt, reviewedAt, reviewedBy }`.
+
+**`PATCH /{id}`** — body `{ "status"?: "aprobado" | "rechazado" | "borrador", "reason"?: "..." }` (at least one; `reason` max 300 chars, empty string clears it). Sets `reviewedAt`/`reviewedBy`. Returns the updated item.
+
+**`PUT /producto/{productId}/orden`** — body `{ "tipo": "complementario", "ids": ["relationId", ...] }`. Listed ids get positions `0..n-1`; unlisted relations keep their relative order after them. `400 INVALID_RELATION_IDS` if any id does not belong to that product and type.
+
+**`POST /`** — body `{ "productId", "relatedProductId", "tipo", "reason" }`. `409` if the pair already exists for that type (any status), `404` if a product does not exist.
 
 ---
 

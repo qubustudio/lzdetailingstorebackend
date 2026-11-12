@@ -64,7 +64,7 @@ builder.Services.AddCors(options =>
                       ?? ["http://localhost:3000", "http://localhost:4200"];
 
         policy.WithOrigins(origins)
-            .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             .WithHeaders("Authorization", "Content-Type", "X-Correlation-ID")
             .WithExposedHeaders("X-Correlation-ID", "X-RateLimit-Remaining")
             .AllowCredentials();

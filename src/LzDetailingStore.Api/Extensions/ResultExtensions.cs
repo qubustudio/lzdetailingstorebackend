@@ -11,6 +11,7 @@ public static class ResultExtensions
         { StatusCode: 404 } => Results.NotFound(ToErrorBody(result)),
         { StatusCode: 409 } => Results.Conflict(ToErrorBody(result)),
         { StatusCode: 403 } => Results.Json(ToErrorBody(result), statusCode: 403),
+        { StatusCode: 503 } => Results.Json(ToErrorBody(result), statusCode: 503),
         _ => Results.BadRequest(ToErrorBody(result))
     };
 
