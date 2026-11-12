@@ -577,6 +577,83 @@ namespace LzDetailingStore.Infrastructure.Migrations
                     b.ToTable("product_image", (string)null);
                 });
 
+            modelBuilder.Entity("LzDetailingStore.Domain.Entities.Catalog.ProductRelation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("product_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("RelatedProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("related_product_id");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_at");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reviewed_by");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sort_order");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_product_relation");
+
+                    b.HasIndex("RelatedProductId")
+                        .HasDatabaseName("ix_product_relation_related_product_id");
+
+                    b.HasIndex("ProductId", "RelatedProductId", "Type")
+                        .IsUnique()
+                        .HasDatabaseName("ix_product_relation_product_id_related_product_id_type");
+
+                    b.HasIndex("ProductId", "Status", "Type", "SortOrder")
+                        .HasDatabaseName("ix_product_relation_product_id_status_type_sort_order");
+
+                    b.ToTable("product_relation", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_product_relation_not_self", "product_id <> related_product_id");
+                        });
+                });
+
             modelBuilder.Entity("LzDetailingStore.Domain.Entities.Catalog.ProductSpec", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1654,6 +1731,27 @@ namespace LzDetailingStore.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_product_image_product_product_id");
+                });
+
+            modelBuilder.Entity("LzDetailingStore.Domain.Entities.Catalog.ProductRelation", b =>
+                {
+                    b.HasOne("LzDetailingStore.Domain.Entities.Catalog.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_product_relation_product_product_id");
+
+                    b.HasOne("LzDetailingStore.Domain.Entities.Catalog.Product", "RelatedProduct")
+                        .WithMany()
+                        .HasForeignKey("RelatedProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_product_relation_product_related_product_id");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("RelatedProduct");
                 });
 
             modelBuilder.Entity("LzDetailingStore.Domain.Entities.Catalog.ProductSpec", b =>
