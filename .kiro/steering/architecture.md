@@ -59,15 +59,12 @@ Api → Application → Domain ← Infrastructure
 - Frontend requests specify desired currency; backend converts on the fly
 - Mercado Pago handles payment in the user's chosen currency
 
-### ADR-003: Product Recommendations via pgvector
+### ADR-003: Product Recommendations via curated ProductRelations
 
-- Products have an `embedding` column (vector(384)) in PostgreSQL
-- Local model: ML.NET + ONNX runtime with all-MiniLM-L6-v2 (384 dimensions)
-- No external API dependency (no OpenAI/Google) — zero cost, full data privacy
-- Embeddings generated from: name + brand + category + description + specs
-- Cosine similarity search finds semantically related products
-- Results: top 10 nearest → random 3-6 selection (controlled randomness)
-- Embedding regenerated via background job when product is created/updated
+- Recommendations come from the `product_relation` table (complementary + similar), not from embeddings
+- Claude (Anthropic via `IChatClient`) proposes relations as drafts; an admin approves, rejects, edits or reorders them
+- Only approved relations reach the public `/productos/{id}/recomendaciones` endpoint (with category fallback)
+- Superseded: the original local-embedding approach (ML.NET + ONNX, `product.embedding`) was never used and has been removed
 
 ### ADR-004: Observability Stack
 

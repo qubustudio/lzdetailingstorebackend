@@ -18,7 +18,6 @@ public sealed class Product : AuditableEntity
     public int ReviewCount { get; set; }
     public string? Badge { get; set; }
     public bool IsActive { get; set; } = true;
-    public float[]? Embedding { get; set; }
 
     public Brand Brand { get; set; } = null!;
     public Category Category { get; set; } = null!;

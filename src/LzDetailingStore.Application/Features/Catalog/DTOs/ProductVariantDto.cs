@@ -7,6 +7,6 @@ public sealed record ProductVariantDto(
     decimal PrecioVenta,
     decimal SizeValue,
     string SizeUnit,
-    int Stock,
+    bool Disponible,
     bool IsActive,
     int SortOrder);

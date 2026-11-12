@@ -31,7 +31,7 @@ Backend Web API for **LZ Detailing Store**, an online store specializing in auto
 | File Storage | AWS S3 |
 | Email | External service (TBD) |
 | Exchange Rate | Banxico SIE API (serie SF43718) |
-| AI/Embeddings | pgvector + ML.NET + ONNX (all-MiniLM-L6-v2, 384d) — local model |
+| AI/Recommendations | Anthropic Claude via Microsoft.Extensions.AI (`IChatClient`) — drafts approved by an admin |
 | Containers | Docker + Docker Compose |
 | Tests | xUnit + FluentAssertions + Testcontainers |
 

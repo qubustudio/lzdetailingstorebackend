@@ -13,7 +13,63 @@ public static class SeedData
 
         await context.Database.MigrateAsync();
 
-        if (await context.Set<Role>().AnyAsync()) return; // Already seeded
+        if (!await context.Set<Role>().AnyAsync())
+            await SeedRbacAsync(context);
+
+        // Idempotent: also adds permissions introduced after the initial seed to existing databases.
+        await EnsureRecommendationPermissionsAsync(context);
+    }
+
+    public const string RecommendationsModuleSlug = "recomendaciones";
+    public const string ManageRecommendationsPermission = "recomendaciones.gestionar";
+
+    /// <summary>
+    /// Ensures the "Recomendaciones" module and the <c>recomendaciones.gestionar</c> permission exist,
+    /// granted to SuperAdmin and Admin (never Cliente).
+    /// </summary>
+    private static async Task EnsureRecommendationPermissionsAsync(AppDbContext context)
+    {
+        var permission = await context.Set<Permission>()
+            .FirstOrDefaultAsync(p => p.Slug == ManageRecommendationsPermission);
+
+        if (permission is null)
+        {
+            var module = await context.Set<Module>().FirstOrDefaultAsync(m => m.Slug == RecommendationsModuleSlug);
+            if (module is null)
+            {
+                var maxOrder = await context.Set<Module>().MaxAsync(m => (int?)m.Orden) ?? 0;
+                module = new Module { Nombre = "Recomendaciones", Slug = RecommendationsModuleSlug, Orden = maxOrder + 1 };
+                await context.Set<Module>().AddAsync(module);
+            }
+
+            permission = new Permission
+            {
+                ModuleId = module.Id,
+                Nombre = "Gestionar",
+                Slug = ManageRecommendationsPermission,
+                Descripcion = "Gestionar in Recomendaciones"
+            };
+            await context.Set<Permission>().AddAsync(permission);
+        }
+
+        var permissionId = permission.Id;
+        var roles = await context.Set<Role>()
+            .Where(r => r.Nombre == "SuperAdmin" || r.Nombre == "Admin")
+            .Select(r => new
+            {
+                r.Id,
+                HasPermission = r.RolePermissions.Any(rp => rp.PermissionId == permissionId)
+            })
+            .ToListAsync();
+
+        foreach (var role in roles.Where(r => !r.HasPermission))
+            await context.Set<RolePermission>().AddAsync(new RolePermission { RoleId = role.Id, PermissionId = permissionId });
+
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedRbacAsync(AppDbContext context)
+    {
 
         // Roles
         var superAdmin = new Role { Nombre = "SuperAdmin", Descripcion = "Full system access", IsSystem = true };

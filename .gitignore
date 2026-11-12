@@ -76,3 +76,10 @@ test-stderr.txt
 .nuget/
 
 # EF Core — Migrations/ are source and MUST stay tracked (not ignored here)
+
+# Local database backups
+backups/
+
+# Generated output of tools/PdfCatalogExtractor
+tools/PdfCatalogExtractor/output.txt
+tools/PdfCatalogExtractor/catalog_extracted.csv

@@ -2,7 +2,7 @@
 
 ## Extensions Required
 
-- `pgvector` — Vector similarity search for product recommendations
+- `pgvector` — Enabled by the initial migration; currently unused (no vector columns remain)
 - `uuid-ossp` — UUID generation (or use application-level UUIDs)
 
 ## Schema Overview
@@ -143,11 +143,10 @@
 | ReviewCount | int | DEFAULT 0 |
 | Badge | varchar(50) | NULL |
 | IsActive | boolean | DEFAULT true |
-| Embedding | vector(384) | NULL (pgvector, all-MiniLM-L6-v2) |
 | CreatedAt | timestamptz | NOT NULL |
 | UpdatedAt | timestamptz | NOT NULL |
 
-**Indexes:** BrandId, CategoryId, Slug, Sku, IsActive, Price, embedding (ivfflat/hnsw)
+**Indexes:** BrandId, CategoryId, Slug, Sku, IsActive, Price
 
 #### ProductImages
 | Column | Type | Constraints |

@@ -53,7 +53,7 @@ public sealed class CreateCheckoutCommandHandler(
             if (item.Quantity > item.Variant.Stock)
                 return Result<CheckoutResultDto>.Failure(
                     new Error("INSUFFICIENT_STOCK",
-                        $"Stock insuficiente para '{item.Variant.Nombre}'. Disponible: {item.Variant.Stock}."));
+                        $"'{item.Variant.Nombre}' no está disponible en la cantidad solicitada."));
         }
 
         // Create order with snapshot data

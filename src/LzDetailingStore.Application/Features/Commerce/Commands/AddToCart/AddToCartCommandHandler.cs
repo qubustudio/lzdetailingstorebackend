@@ -23,7 +23,7 @@ public sealed class AddToCartCommandHandler(
 
         if (variant.Stock < request.Quantity)
             return Result.Failure(new Error("INSUFFICIENT_STOCK", 
-                $"Stock insuficiente. Disponible: {variant.Stock}."));
+                "Producto no disponible en la cantidad solicitada."));
 
         // Get or create cart
         var cart = await dbContext.Set<Cart>()
@@ -44,7 +44,7 @@ public sealed class AddToCartCommandHandler(
             var newQuantity = existingItem.Quantity + request.Quantity;
             if (newQuantity > variant.Stock)
                 return Result.Failure(new Error("INSUFFICIENT_STOCK",
-                    $"Stock insuficiente. Disponible: {variant.Stock}, en carrito: {existingItem.Quantity}."));
+                    "Producto no disponible en la cantidad solicitada."));
 
             existingItem.Quantity = newQuantity;
         }

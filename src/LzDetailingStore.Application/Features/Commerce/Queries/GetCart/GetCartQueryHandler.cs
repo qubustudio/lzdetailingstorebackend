@@ -32,7 +32,7 @@ public sealed class GetCartQueryHandler(DbContext dbContext)
             item.Variant.PrecioVenta,
             item.Quantity,
             item.Variant.PrecioVenta * item.Quantity,
-            item.Variant.Stock
+            item.Variant.Stock >= item.Quantity
         )).ToList();
 
         var subtotal = items.Sum(i => i.Subtotal);
