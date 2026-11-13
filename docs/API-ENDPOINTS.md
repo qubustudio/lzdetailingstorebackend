@@ -200,6 +200,52 @@ Granted to `SuperAdmin`, `Admin` and `Operativo`.
 
 ---
 
+## Admin - Dashboard (JWT + `dashboard.ver`)
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/v1/admin/dashboard/resumen?dias=30` | dashboard.ver | KPIs, daily sales, top products, sales by category and brand, orders by status |
+
+`dashboard.ver` is granted to `SuperAdmin`, `Admin` and `Operativo`. Money figures additionally require
+`dashboard.ventas` (`SuperAdmin` and `Admin` only). Without it `incluyeVentas` is `false`, `ventasMes`,
+`ticketPromedio`, `ventasPorDia[].ingresos`, `topProductos[].ingresos` and `ventasPorMarca[].ingresos` are `null`, and
+`ventasPorCategoria` is `[]`; order and unit counts are still returned.
+
+- `dias` (optional, default `30`, allowed `7..365`): `400 VALIDATION_ERROR` outside that range.
+- **Paid orders** = `Pagada`, `Enviada`, `Entregada`. `Pendiente`, `Rechazada`, `Cancelada` and `Reembolsada` never count as sales.
+- Day/month boundaries use Mexico City time (`America/Mexico_City`).
+- `kpis.ventasMes`: total of paid orders created this calendar month. `pedidosMes`: orders created this month except `Cancelada` and `Rechazada` (rejected payment).
+  `ticketPromedio`: `ventasMes / paid orders this month` (2 decimals, `0` when none). `productosAgotados`: active products with no active variant available.
+- `ventasPorDia`: one entry per day of the last `dias` days including today, ascending, zero-filled, paid orders only.
+- `topProductos`: top 10 by units sold in paid orders of the period; revenue = stored line subtotals (price at purchase time).
+- `ventasPorCategoria`: paid orders of the period, descending by revenue, only categories with sales.
+- `ventasPorMarca`: paid orders of the period grouped by product brand (stored line quantities/subtotals), only brands with sales. Always returned: ordered by `ingresos` desc when `incluyeVentas`, otherwise by `unidades` desc with `ingresos: null`.
+- `pedidosPorEstado`: all orders (no date filter), every status in enum order including zero counts.
+
+```json
+{
+  "incluyeVentas": true,
+  "kpis": { "ventasMes": 18450.00, "pedidosMes": 42, "ticketPromedio": 512.50, "productosAgotados": 3 },
+  "ventasPorDia": [
+    { "fecha": "2026-11-11", "ingresos": 0, "pedidos": 0 },
+    { "fecha": "2026-11-12", "ingresos": 1250.00, "pedidos": 3 }
+  ],
+  "topProductos": [
+    { "productoId": "3f2b8c1e-5d4a-4f7b-9c2e-1a6d8e0b7f43", "nombre": "Cera Premium", "unidades": 12, "ingresos": 4200.00 }
+  ],
+  "ventasPorCategoria": [ { "categoria": "Ceras", "ingresos": 9800.00 } ],
+  "ventasPorMarca": [ { "marca": "Meguiar's", "unidades": 25, "ingresos": 7600.00 } ],
+  "pedidosPorEstado": [
+    { "estado": "Pendiente", "cantidad": 4 }, { "estado": "Pagada", "cantidad": 10 },
+    { "estado": "Enviada", "cantidad": 6 }, { "estado": "Entregada", "cantidad": 30 },
+    { "estado": "Cancelada", "cantidad": 2 }, { "estado": "Rechazada", "cantidad": 0 },
+    { "estado": "Reembolsada", "cantidad": 0 }
+  ]
+}
+```
+
+---
+
 ## Admin - Content (JWT + permissions)
 
 | Method | Endpoint | Permission | Description |

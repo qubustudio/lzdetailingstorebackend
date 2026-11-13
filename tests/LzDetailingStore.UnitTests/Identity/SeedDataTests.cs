@@ -37,6 +37,37 @@ public sealed class SeedDataTests
     }
 
     [Fact]
+    public async Task DashboardVentas_SoloParaSuperAdminYAdmin()
+    {
+        await SeedData.SeedAsync(_ctx);
+
+        (await PermissionsOfAsync("SuperAdmin")).Should().Contain("dashboard.ventas");
+        (await PermissionsOfAsync("Admin")).Should().Contain("dashboard.ventas");
+        (await PermissionsOfAsync("Operativo")).Should().Contain("dashboard.ver").And.NotContain("dashboard.ventas");
+        (await PermissionsOfAsync("Cliente")).Should().NotContain("dashboard.ventas");
+    }
+
+    [Fact]
+    public async Task BaseExistenteSinDashboardVentas_LoAgregaSoloASuperAdminYAdmin()
+    {
+        // Simulates a database seeded before dashboard.ventas existed.
+        await SeedData.SeedAsync(_ctx);
+        var sales = await _ctx.Set<Permission>().SingleAsync(p => p.Slug == "dashboard.ventas");
+        _ctx.Set<RolePermission>().RemoveRange(
+            await _ctx.Set<RolePermission>().Where(rp => rp.PermissionId == sales.Id).ToListAsync());
+        _ctx.Set<Permission>().Remove(sales);
+        await _ctx.SaveChangesAsync();
+        _ctx.ChangeTracker.Clear();
+
+        await SeedData.SeedAsync(_ctx);
+
+        (await _ctx.Set<Permission>().CountAsync(p => p.Slug == "dashboard.ventas")).Should().Be(1);
+        (await PermissionsOfAsync("SuperAdmin")).Should().Contain("dashboard.ventas");
+        (await PermissionsOfAsync("Admin")).Should().Contain("dashboard.ventas");
+        (await PermissionsOfAsync("Operativo")).Should().NotContain("dashboard.ventas");
+    }
+
+    [Fact]
     public async Task EjecutarVariasVeces_NoDuplicaRolesPermisosNiAsignaciones()
     {
         await SeedData.SeedAsync(_ctx);

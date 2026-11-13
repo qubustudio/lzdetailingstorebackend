@@ -26,6 +26,10 @@ public static class SeedData
     public const string ProductsModuleSlug = "productos";
     public const string ProductAvailabilityPermission = "productos.disponibilidad";
 
+    public const string DashboardModuleSlug = "dashboard";
+    public const string DashboardSalesPermission = "dashboard.ventas";
+    private const string DashboardSalesDescription = "Ver ventas e ingresos en el resumen";
+
     /// <summary>Default permissions granted to the Operativo role when it is created.</summary>
     public static readonly IReadOnlyList<string> OperativoPermissions =
     [
@@ -48,6 +52,7 @@ public static class SeedData
         // Idempotent: also adds permissions/roles introduced after the initial seed to existing databases.
         await EnsureRecommendationPermissionsAsync(context);
         await EnsureProductAvailabilityPermissionAsync(context);
+        await EnsureDashboardSalesPermissionAsync(context);
         await EnsureOperativoRoleAsync(context);
     }
 
@@ -73,6 +78,20 @@ public static class SeedData
         var permission = await EnsurePermissionAsync(
             context, ProductsModuleSlug, "Productos",
             "Disponibilidad", ProductAvailabilityPermission, "Disponibilidad in Productos");
+
+        await GrantToRolesAsync(context, permission.Id, SuperAdminRole, AdminRole);
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Ensures the <c>dashboard.ventas</c> permission (money figures in the admin dashboard) exists,
+    /// granted to SuperAdmin and Admin only. Operativo sees the dashboard without sales or revenue.
+    /// </summary>
+    private static async Task EnsureDashboardSalesPermissionAsync(DbContext context)
+    {
+        var permission = await EnsurePermissionAsync(
+            context, DashboardModuleSlug, "Dashboard",
+            "Ventas", DashboardSalesPermission, DashboardSalesDescription);
 
         await GrantToRolesAsync(context, permission.Id, SuperAdminRole, AdminRole);
         await context.SaveChangesAsync();
@@ -207,6 +226,16 @@ public static class SeedData
             Nombre = "Disponibilidad",
             Slug = ProductAvailabilityPermission,
             Descripcion = "Disponibilidad in Productos"
+        });
+
+        // Extra dashboard permission: see sales/revenue figures (never granted to Operativo)
+        var dashboardModule = modules.Single(m => m.Slug == DashboardModuleSlug);
+        permissions.Add(new Permission
+        {
+            ModuleId = dashboardModule.Id,
+            Nombre = "Ventas",
+            Slug = DashboardSalesPermission,
+            Descripcion = DashboardSalesDescription
         });
 
         await context.Set<Permission>().AddRangeAsync(permissions);

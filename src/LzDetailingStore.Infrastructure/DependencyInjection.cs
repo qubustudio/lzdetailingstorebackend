@@ -27,6 +27,9 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<DbContext>(sp => sp.GetRequiredService<AppDbContext>());
 
+        // Clock abstraction so time-dependent handlers (e.g. dashboard) are deterministic in tests.
+        services.AddSingleton(TimeProvider.System);
+
         // Auth services
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
