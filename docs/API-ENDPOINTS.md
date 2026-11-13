@@ -194,9 +194,74 @@ Granted to `SuperAdmin`, `Admin` and `Operativo`.
 
 | Method | Endpoint | Permission | Description |
 |--------|----------|------------|-------------|
-| GET | `/api/v1/admin/pedidos` | ordenes.ver | All orders (filterable by status) |
+| GET | `/api/v1/admin/pedidos` | ordenes.ver | All orders (paginated, filterable) |
+| GET | `/api/v1/admin/pedidos/{id}` | ordenes.ver | Order detail (any customer) |
 | PUT | `/api/v1/admin/pedidos/{id}/status` | ordenes.editar | Change order status |
 | PUT | `/api/v1/admin/pedidos/{id}/tracking` | ordenes.editar | Assign tracking |
+
+**Money visibility** — prices and totals additionally require `ordenes.montos` (`SuperAdmin` and `Admin` only).
+Without it `incluyeMontos` is `false` and every money field is `null` (list: `total`; detail: `subtotal`,
+`shippingCost`, `total`, `items[].unitPrice`, `items[].subtotal`). Status and tracking updates are unaffected.
+
+**`GET /`** — query params (all optional):
+
+- `page` (default `1`), `limit` (default `20`, clamped `1..100`). Ordered by `createdAt` desc.
+- `status`: `Pendiente`, `Pagada`, `Enviada`, `Entregada`, `Cancelada`, `Rechazada`, `Reembolsada`.
+- `desde`, `hasta` (`YYYY-MM-DD`, inclusive, Mexico City calendar days). `400 VALIDATION_ERROR` if `hasta < desde`.
+- `search` (max 100 chars): case-insensitive partial match on order id (a leading `#` is ignored, e.g. `#3f2b8c1e`), customer name or email.
+
+```json
+{
+  "incluyeMontos": true,
+  "data": [
+    {
+      "id": "3f2b8c1e-5d4a-4f7b-9c2e-1a6d8e0b7f43", "status": "Pagada",
+      "customerName": "Ana López", "customerEmail": "ana@correo.com",
+      "total": 349.00, "totalItems": 3, "createdAt": "2026-11-10T16:00:00Z"
+    }
+  ],
+  "total": 42, "page": 1, "totalPages": 3
+}
+```
+
+`customerName`/`customerEmail` are `null` if the customer account no longer exists.
+
+**`GET /{id}`** — `404` if the order does not exist. `allowedTransitions` lists the statuses `PUT /{id}/status` accepts next.
+
+```json
+{
+  "incluyeMontos": true,
+  "id": "3f2b8c1e-5d4a-4f7b-9c2e-1a6d8e0b7f43",
+  "status": "Pagada",
+  "allowedTransitions": ["Enviada", "Cancelada"],
+  "customer": { "id": "…", "nombre": "Ana López", "email": "ana@correo.com", "telefono": "5512345678" },
+  "shippingAddress": {
+    "id": "…", "nombre": "Casa", "calle": "Av. Reforma", "numeroExterior": "10", "numeroInterior": null,
+    "colonia": "Centro", "ciudad": "CDMX", "estado": "CDMX", "codigoPostal": "06000",
+    "telefono": null, "referencia": null, "esPrincipal": true
+  },
+  "subtotal": 250.00, "shippingCost": 99.00, "total": 349.00,
+  "trackingNumber": null, "trackingUrl": null, "notes": null, "paymentId": "123456789",
+  "createdAt": "2026-11-10T16:00:00Z", "updatedAt": "2026-11-10T16:05:00Z",
+  "items": [
+    {
+      "id": "…", "variantId": "…", "productName": "Cera Premium", "variantName": "500 ml", "sku": "CER-500",
+      "imageUrl": null, "unitPrice": 100.00, "quantity": 2, "subtotal": 200.00
+    }
+  ]
+}
+```
+
+**`PUT /{id}/status`** — body `{ "status": 2 }` (numeric enum: `0` Pendiente, `1` Pagada, `2` Enviada, `3` Entregada,
+`4` Cancelada, `5` Rechazada, `6` Reembolsada). Allowed admin transitions: `Pendiente → Cancelada`,
+`Pagada → Enviada | Cancelada`, `Enviada → Entregada`; `Entregada`, `Cancelada`, `Rechazada` and `Reembolsada` are final.
+`400 INVALID_TRANSITION` otherwise, `404` if the order does not exist. Empty `200` on success.
+Admins can never set `Pagada`: payments are confirmed only by the Mercado Pago webhook (`POST /api/v1/webhooks/mercadopago`),
+so `status: 1` always returns `400 INVALID_TRANSITION` with message `"El pago solo se confirma desde Mercado Pago."`.
+The detail's `allowedTransitions` comes from the same rules (a `Pendiente` order lists only `["Cancelada"]`).
+
+**`PUT /{id}/tracking`** — body `{ "orderId", "trackingNumber", "trackingUrl" }` (`orderId` must match the route,
+else `400 ID_MISMATCH`). Empty `200` on success.
 
 ---
 

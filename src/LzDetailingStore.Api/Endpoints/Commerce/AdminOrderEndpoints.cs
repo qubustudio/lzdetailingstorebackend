@@ -1,9 +1,13 @@
+using System.Security.Claims;
 using LzDetailingStore.Api.Extensions;
 using LzDetailingStore.Application.Features.Commerce.Commands.AssignTracking;
 using LzDetailingStore.Application.Features.Commerce.Commands.UpdateOrderStatus;
+using LzDetailingStore.Application.Features.Commerce.DTOs;
+using LzDetailingStore.Application.Features.Commerce.Queries.GetAdminOrderById;
 using LzDetailingStore.Application.Features.Commerce.Queries.GetAllOrders;
 using LzDetailingStore.SharedKernel.Enums;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 
 namespace LzDetailingStore.Api.Endpoints.Commerce;
 
@@ -18,6 +22,9 @@ public sealed class AdminOrderEndpoints : IEndpointGroup
         group.MapGet("/", GetAllOrders)
             .RequireAuthorization("ordenes.ver");
 
+        group.MapGet("/{id:guid}", GetOrderById)
+            .RequireAuthorization("ordenes.ver");
+
         group.MapPut("/{id:guid}/status", UpdateOrderStatus)
             .RequireAuthorization("ordenes.editar");
 
@@ -26,12 +33,30 @@ public sealed class AdminOrderEndpoints : IEndpointGroup
     }
 
     private static async Task<IResult> GetAllOrders(
-        ISender sender, CancellationToken ct,
-        int page = 1, int limit = 20, OrderStatus? status = null)
+        ClaimsPrincipal user, IAuthorizationService authorization, ISender sender, CancellationToken ct,
+        int page = 1, int limit = 20, OrderStatus? status = null,
+        DateOnly? desde = null, DateOnly? hasta = null, string? search = null)
     {
-        var result = await sender.Send(new GetAllOrdersQuery(page, limit, status), ct);
+        var incluyeMontos = await CanSeeMoneyAsync(user, authorization);
+
+        var query = new GetAllOrdersQuery(page, limit, status, desde, hasta, search, incluyeMontos);
+        var result = await sender.Send(query, ct);
         return result.ToApiResponse();
     }
+
+    private static async Task<IResult> GetOrderById(
+        Guid id, ClaimsPrincipal user, IAuthorizationService authorization, ISender sender, CancellationToken ct)
+    {
+        var incluyeMontos = await CanSeeMoneyAsync(user, authorization);
+
+        var result = await sender.Send(new GetAdminOrderByIdQuery(id, incluyeMontos), ct);
+        return result.ToApiResponse();
+    }
+
+    // Money fields require an extra permission; the permission policy provider resolves it exactly like
+    // RequireAuthorization does (Operativo manages orders without seeing prices or totals).
+    private static async Task<bool> CanSeeMoneyAsync(ClaimsPrincipal user, IAuthorizationService authorization) =>
+        (await authorization.AuthorizeAsync(user, AdminOrderPermissions.Montos)).Succeeded;
 
     private static async Task<IResult> UpdateOrderStatus(
         Guid id, UpdateOrderStatusRequest request, ISender sender, CancellationToken ct)

@@ -68,6 +68,43 @@ public sealed class SeedDataTests
     }
 
     [Fact]
+    public async Task OrdenesMontos_SoloParaSuperAdminYAdmin()
+    {
+        await SeedData.SeedAsync(_ctx);
+
+        var permission = await _ctx.Set<Permission>().Include(p => p.Module)
+            .SingleAsync(p => p.Slug == "ordenes.montos");
+        permission.Module.Slug.Should().Be("ordenes");
+        permission.Descripcion.Should().Be("Ver precios y totales de pedidos");
+
+        (await PermissionsOfAsync("SuperAdmin")).Should().Contain("ordenes.montos");
+        (await PermissionsOfAsync("Admin")).Should().Contain("ordenes.montos");
+        (await PermissionsOfAsync("Operativo")).Should().Contain("ordenes.ver").And.NotContain("ordenes.montos");
+        (await PermissionsOfAsync("Cliente")).Should().NotContain("ordenes.montos");
+    }
+
+    [Fact]
+    public async Task BaseExistenteSinOrdenesMontos_LoAgregaSoloASuperAdminYAdmin()
+    {
+        // Simulates a database seeded before ordenes.montos existed.
+        await SeedData.SeedAsync(_ctx);
+        var amounts = await _ctx.Set<Permission>().SingleAsync(p => p.Slug == "ordenes.montos");
+        _ctx.Set<RolePermission>().RemoveRange(
+            await _ctx.Set<RolePermission>().Where(rp => rp.PermissionId == amounts.Id).ToListAsync());
+        _ctx.Set<Permission>().Remove(amounts);
+        await _ctx.SaveChangesAsync();
+        _ctx.ChangeTracker.Clear();
+
+        await SeedData.SeedAsync(_ctx);
+
+        (await _ctx.Set<Permission>().CountAsync(p => p.Slug == "ordenes.montos")).Should().Be(1);
+        (await _ctx.Set<Module>().CountAsync(m => m.Slug == "ordenes")).Should().Be(1);
+        (await PermissionsOfAsync("SuperAdmin")).Should().Contain("ordenes.montos");
+        (await PermissionsOfAsync("Admin")).Should().Contain("ordenes.montos");
+        (await PermissionsOfAsync("Operativo")).Should().NotContain("ordenes.montos");
+    }
+
+    [Fact]
     public async Task EjecutarVariasVeces_NoDuplicaRolesPermisosNiAsignaciones()
     {
         await SeedData.SeedAsync(_ctx);

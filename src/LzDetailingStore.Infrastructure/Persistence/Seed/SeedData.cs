@@ -30,6 +30,10 @@ public static class SeedData
     public const string DashboardSalesPermission = "dashboard.ventas";
     private const string DashboardSalesDescription = "Ver ventas e ingresos en el resumen";
 
+    public const string OrdersModuleSlug = "ordenes";
+    public const string OrderAmountsPermission = "ordenes.montos";
+    private const string OrderAmountsDescription = "Ver precios y totales de pedidos";
+
     /// <summary>Default permissions granted to the Operativo role when it is created.</summary>
     public static readonly IReadOnlyList<string> OperativoPermissions =
     [
@@ -53,6 +57,7 @@ public static class SeedData
         await EnsureRecommendationPermissionsAsync(context);
         await EnsureProductAvailabilityPermissionAsync(context);
         await EnsureDashboardSalesPermissionAsync(context);
+        await EnsureOrderAmountsPermissionAsync(context);
         await EnsureOperativoRoleAsync(context);
     }
 
@@ -92,6 +97,20 @@ public static class SeedData
         var permission = await EnsurePermissionAsync(
             context, DashboardModuleSlug, "Dashboard",
             "Ventas", DashboardSalesPermission, DashboardSalesDescription);
+
+        await GrantToRolesAsync(context, permission.Id, SuperAdminRole, AdminRole);
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Ensures the <c>ordenes.montos</c> permission (prices and totals in the admin orders) exists,
+    /// granted to SuperAdmin and Admin only. Operativo manages orders without seeing money.
+    /// </summary>
+    private static async Task EnsureOrderAmountsPermissionAsync(DbContext context)
+    {
+        var permission = await EnsurePermissionAsync(
+            context, OrdersModuleSlug, "Ordenes",
+            "Montos", OrderAmountsPermission, OrderAmountsDescription);
 
         await GrantToRolesAsync(context, permission.Id, SuperAdminRole, AdminRole);
         await context.SaveChangesAsync();
@@ -236,6 +255,16 @@ public static class SeedData
             Nombre = "Ventas",
             Slug = DashboardSalesPermission,
             Descripcion = DashboardSalesDescription
+        });
+
+        // Extra orders permission: see prices and totals (never granted to Operativo)
+        var ordersModule = modules.Single(m => m.Slug == OrdersModuleSlug);
+        permissions.Add(new Permission
+        {
+            ModuleId = ordersModule.Id,
+            Nombre = "Montos",
+            Slug = OrderAmountsPermission,
+            Descripcion = OrderAmountsDescription
         });
 
         await context.Set<Permission>().AddRangeAsync(permissions);

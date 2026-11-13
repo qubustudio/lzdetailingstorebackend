@@ -1,6 +1,7 @@
 using LzDetailingStore.Domain.Entities.Commerce;
 using LzDetailingStore.Domain.Services;
 using LzDetailingStore.SharedKernel;
+using LzDetailingStore.SharedKernel.Enums;
 using LzDetailingStore.SharedKernel.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +23,9 @@ public sealed class UpdateOrderStatusCommandHandler(
 
         if (!OrderStatusMachine.CanTransition(order.Status, request.NewStatus))
             return Result.Failure(new Error("INVALID_TRANSITION",
-                $"No se puede cambiar de '{order.Status}' a '{request.NewStatus}'."));
+                request.NewStatus == OrderStatus.Pagada
+                    ? OrderStatusMachine.PaymentOnlyViaMercadoPagoMessage
+                    : $"No se puede cambiar de '{order.Status}' a '{request.NewStatus}'."));
 
         order.Status = request.NewStatus;
         await unitOfWork.SaveChangesAsync(ct);
