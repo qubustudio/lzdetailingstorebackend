@@ -31,7 +31,11 @@
 | IsSystem | boolean | DEFAULT false (system roles cannot be deleted) |
 | CreatedAt | timestamptz | NOT NULL |
 
-**Seed Roles:** Cliente, Admin, SuperAdmin
+**Seed Roles (all `IsSystem = true`):**
+- SuperAdmin — all permissions
+- Admin — all permissions except `usuarios.*` and `roles.*`
+- Operativo — `ordenes.ver`, `ordenes.editar`, `productos.ver`, `productos.disponibilidad`, `dashboard.ver` (granted when the role is created; created idempotently on startup)
+- Cliente — no admin permissions
 
 #### Modules
 | Column | Type | Constraints |
@@ -54,6 +58,8 @@
 | Descripcion | varchar(200) | NULL |
 
 **Seed Permissions per Module:** Ver, Crear, Editar, Eliminar (e.g., `productos.ver`, `productos.crear`)
+
+**Extra permissions:** `productos.disponibilidad` (toggle variant availability), `recomendaciones.gestionar` (module Recomendaciones). Both are added idempotently to existing databases on startup.
 
 #### RolePermissions
 | Column | Type | Constraints |

@@ -13,6 +13,26 @@
 | POST | `/api/v1/auth/refresh` | Refresh JWT token |
 | GET | `/api/v1/auth/perfil` | Get authenticated user profile (JWT required) |
 
+### `GET /api/v1/auth/perfil`
+
+Returns the authenticated user's profile, role names and **effective permission slugs**.
+`permisos` is the distinct set of slugs granted through all of the user's roles, sorted ascending;
+it is an empty array when the user has no roles/permissions. **404** when the user no longer exists.
+
+```json
+{
+  "id": "uuid",
+  "nombre": "...",
+  "email": "user@example.com",
+  "telefono": "...",
+  "roles": ["Operativo"],
+  "permisos": ["ordenes.ver", "recomendaciones.gestionar"]
+}
+```
+
+Login, registro and refresh return tokens only (`accessToken`, `refreshToken`, `expiresIn`); call `perfil`
+after authenticating to obtain roles and permissions.
+
 ---
 
 ## Catalog (Public)
@@ -120,6 +140,17 @@ Stock quantities and cost are never exposed — variants only carry the `disponi
 | DELETE | `/api/v1/admin/productos/imagenes/{id}` | productos.eliminar | Delete image |
 | PUT | `/api/v1/admin/productos/{id}/specs` | productos.editar | Manage specs |
 | PUT | `/api/v1/admin/productos/{id}/pasos` | productos.editar | Manage steps |
+| PATCH | `/api/v1/admin/productos/{productId}/variantes/{variantId}/disponibilidad` | productos.disponibilidad | Mark variant available / sold out |
+
+> Note: every endpoint in the main `/api/v1/admin/productos` group above also requires `productos.crear`
+> (group-level policy). The `disponibilidad` endpoint is mapped outside that group and requires only
+> `productos.disponibilidad` (granted to `SuperAdmin`, `Admin` and `Operativo`).
+
+**`PATCH /{productId}/variantes/{variantId}/disponibilidad`** — body `{ "disponible": true | false }`.
+Stock is an availability flag, not an inventory count: `true` sets the variant's stock to `99` (available),
+`false` sets it to `0` (sold out / on request). Nothing else on the variant changes.
+Response `200` (empty body, same as the other variant updates); `404` "Variante no encontrada." when the
+variant does not exist or does not belong to the product.
 
 ---
 
@@ -159,11 +190,59 @@ The permission is seeded for `SuperAdmin` and `Admin` (not `Cliente`).
 
 ## Admin - Orders (JWT + permissions)
 
+Granted to `SuperAdmin`, `Admin` and `Operativo`.
+
 | Method | Endpoint | Permission | Description |
 |--------|----------|------------|-------------|
-| GET | `/api/v1/admin/pedidos` | pedidos.ver | All orders (filterable by status) |
-| PUT | `/api/v1/admin/pedidos/{id}/status` | pedidos.editar | Change order status |
-| PUT | `/api/v1/admin/pedidos/{id}/tracking` | pedidos.editar | Assign tracking |
+| GET | `/api/v1/admin/pedidos` | ordenes.ver | All orders (filterable by status) |
+| PUT | `/api/v1/admin/pedidos/{id}/status` | ordenes.editar | Change order status |
+| PUT | `/api/v1/admin/pedidos/{id}/tracking` | ordenes.editar | Assign tracking |
+
+---
+
+## Admin - Dashboard (JWT + `dashboard.ver`)
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/v1/admin/dashboard/resumen?dias=30` | dashboard.ver | KPIs, daily sales, top products, sales by category and brand, orders by status |
+
+`dashboard.ver` is granted to `SuperAdmin`, `Admin` and `Operativo`. Money figures additionally require
+`dashboard.ventas` (`SuperAdmin` and `Admin` only). Without it `incluyeVentas` is `false`, `ventasMes`,
+`ticketPromedio`, `ventasPorDia[].ingresos`, `topProductos[].ingresos` and `ventasPorMarca[].ingresos` are `null`, and
+`ventasPorCategoria` is `[]`; order and unit counts are still returned.
+
+- `dias` (optional, default `30`, allowed `7..365`): `400 VALIDATION_ERROR` outside that range.
+- **Paid orders** = `Pagada`, `Enviada`, `Entregada`. `Pendiente`, `Rechazada`, `Cancelada` and `Reembolsada` never count as sales.
+- Day/month boundaries use Mexico City time (`America/Mexico_City`).
+- `kpis.ventasMes`: total of paid orders created this calendar month. `pedidosMes`: orders created this month except `Cancelada` and `Rechazada` (rejected payment).
+  `ticketPromedio`: `ventasMes / paid orders this month` (2 decimals, `0` when none). `productosAgotados`: active products with no active variant available.
+- `ventasPorDia`: one entry per day of the last `dias` days including today, ascending, zero-filled, paid orders only.
+- `topProductos`: top 10 by units sold in paid orders of the period; revenue = stored line subtotals (price at purchase time).
+- `ventasPorCategoria`: paid orders of the period, descending by revenue, only categories with sales.
+- `ventasPorMarca`: paid orders of the period grouped by product brand (stored line quantities/subtotals), only brands with sales. Always returned: ordered by `ingresos` desc when `incluyeVentas`, otherwise by `unidades` desc with `ingresos: null`.
+- `pedidosPorEstado`: all orders (no date filter), every status in enum order including zero counts.
+
+```json
+{
+  "incluyeVentas": true,
+  "kpis": { "ventasMes": 18450.00, "pedidosMes": 42, "ticketPromedio": 512.50, "productosAgotados": 3 },
+  "ventasPorDia": [
+    { "fecha": "2026-11-11", "ingresos": 0, "pedidos": 0 },
+    { "fecha": "2026-11-12", "ingresos": 1250.00, "pedidos": 3 }
+  ],
+  "topProductos": [
+    { "productoId": "3f2b8c1e-5d4a-4f7b-9c2e-1a6d8e0b7f43", "nombre": "Cera Premium", "unidades": 12, "ingresos": 4200.00 }
+  ],
+  "ventasPorCategoria": [ { "categoria": "Ceras", "ingresos": 9800.00 } ],
+  "ventasPorMarca": [ { "marca": "Meguiar's", "unidades": 25, "ingresos": 7600.00 } ],
+  "pedidosPorEstado": [
+    { "estado": "Pendiente", "cantidad": 4 }, { "estado": "Pagada", "cantidad": 10 },
+    { "estado": "Enviada", "cantidad": 6 }, { "estado": "Entregada", "cantidad": 30 },
+    { "estado": "Cancelada", "cantidad": 2 }, { "estado": "Rechazada", "cantidad": 0 },
+    { "estado": "Reembolsada", "cantidad": 0 }
+  ]
+}
+```
 
 ---
 

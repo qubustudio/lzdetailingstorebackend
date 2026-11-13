@@ -13,16 +13,16 @@ public sealed class AdminOrderEndpoints : IEndpointGroup
     {
         var group = app.MapGroup("/api/v1/admin/pedidos")
             .WithTags("Admin - Orders")
-            .RequireAuthorization("pedidos.ver");
+            .RequireAuthorization("ordenes.ver");
 
         group.MapGet("/", GetAllOrders)
-            .RequireAuthorization("pedidos.ver");
+            .RequireAuthorization("ordenes.ver");
 
         group.MapPut("/{id:guid}/status", UpdateOrderStatus)
-            .RequireAuthorization("pedidos.editar");
+            .RequireAuthorization("ordenes.editar");
 
         group.MapPut("/{id:guid}/tracking", AssignTracking)
-            .RequireAuthorization("pedidos.editar");
+            .RequireAuthorization("ordenes.editar");
     }
 
     private static async Task<IResult> GetAllOrders(

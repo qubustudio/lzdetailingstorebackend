@@ -10,7 +10,7 @@ https://api.lzdetailing.com/v1
 
 - Public endpoints: No authentication required
 - Private endpoints: `Authorization: Bearer <JWT>`
-- Admin endpoints: JWT + Role-based policy (Admin/SuperAdmin)
+- Admin endpoints: JWT + permission-based policy per endpoint (`.RequireAuthorization("<module>.<action>")`, e.g. `productos.editar`, `ordenes.ver`). Permissions are checked against the DB on each request through the user's roles (SuperAdmin, Admin, Operativo, or custom roles)
 - Webhook endpoints: Signature verification (Mercado Pago)
 
 ## Endpoint Groups
@@ -48,7 +48,7 @@ https://api.lzdetailing.com/v1
 | GET | `/ordenes` | Order history (paginated) |
 | GET | `/ordenes/:id` | Order detail |
 
-### Admin Endpoints (JWT + Admin role)
+### Admin Endpoints (JWT + permission policy)
 
 | Method | Route | Description |
 |--------|-------|-------------|
