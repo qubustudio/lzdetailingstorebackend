@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\LzDetailingStore.Application\LzDetailingStore.Application.csproj" />
     <ProjectReference Include="..\..\src\LzDetailingStore.Domain\LzDetailingStore.Domain.csproj" />
+    <ProjectReference Include="..\..\src\LzDetailingStore.Infrastructure\LzDetailingStore.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\LzDetailingStore.SharedKernel\LzDetailingStore.SharedKernel.csproj" />
   </ItemGroup>
 

@@ -13,48 +13,138 @@ public static class SeedData
 
         await context.Database.MigrateAsync();
 
-        if (!await context.Set<Role>().AnyAsync())
-            await SeedRbacAsync(context);
-
-        // Idempotent: also adds permissions introduced after the initial seed to existing databases.
-        await EnsureRecommendationPermissionsAsync(context);
+        await SeedAsync(context);
     }
+
+    public const string SuperAdminRole = "SuperAdmin";
+    public const string AdminRole = "Admin";
+    public const string OperativoRole = "Operativo";
 
     public const string RecommendationsModuleSlug = "recomendaciones";
     public const string ManageRecommendationsPermission = "recomendaciones.gestionar";
+
+    public const string ProductsModuleSlug = "productos";
+    public const string ProductAvailabilityPermission = "productos.disponibilidad";
+
+    /// <summary>Default permissions granted to the Operativo role when it is created.</summary>
+    public static readonly IReadOnlyList<string> OperativoPermissions =
+    [
+        "ordenes.ver",
+        "ordenes.editar",
+        "productos.ver",
+        ProductAvailabilityPermission,
+        "dashboard.ver"
+    ];
+
+    /// <summary>
+    /// Seeds the base RBAC data on an empty database and then runs the idempotent ensure steps,
+    /// which add permissions and roles introduced after the initial seed. Safe to run on every startup.
+    /// </summary>
+    public static async Task SeedAsync(DbContext context)
+    {
+        if (!await context.Set<Role>().AnyAsync())
+            await SeedRbacAsync(context);
+
+        // Idempotent: also adds permissions/roles introduced after the initial seed to existing databases.
+        await EnsureRecommendationPermissionsAsync(context);
+        await EnsureProductAvailabilityPermissionAsync(context);
+        await EnsureOperativoRoleAsync(context);
+    }
 
     /// <summary>
     /// Ensures the "Recomendaciones" module and the <c>recomendaciones.gestionar</c> permission exist,
     /// granted to SuperAdmin and Admin (never Cliente).
     /// </summary>
-    private static async Task EnsureRecommendationPermissionsAsync(AppDbContext context)
+    private static async Task EnsureRecommendationPermissionsAsync(DbContext context)
+    {
+        var permission = await EnsurePermissionAsync(
+            context, RecommendationsModuleSlug, "Recomendaciones",
+            "Gestionar", ManageRecommendationsPermission, "Gestionar in Recomendaciones");
+
+        await GrantToRolesAsync(context, permission.Id, SuperAdminRole, AdminRole);
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Ensures the <c>productos.disponibilidad</c> permission exists, granted to SuperAdmin and Admin.
+    /// </summary>
+    private static async Task EnsureProductAvailabilityPermissionAsync(DbContext context)
+    {
+        var permission = await EnsurePermissionAsync(
+            context, ProductsModuleSlug, "Productos",
+            "Disponibilidad", ProductAvailabilityPermission, "Disponibilidad in Productos");
+
+        await GrantToRolesAsync(context, permission.Id, SuperAdminRole, AdminRole);
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Ensures the Operativo system role exists. Its default permissions are granted only when the role
+    /// is created, so later permission changes made to the role are not overwritten on startup.
+    /// </summary>
+    private static async Task EnsureOperativoRoleAsync(DbContext context)
+    {
+        if (await context.Set<Role>().AnyAsync(r => r.Nombre == OperativoRole))
+            return;
+
+        var role = new Role
+        {
+            Nombre = OperativoRole,
+            Descripcion = "Personal operativo: pedidos y disponibilidad de productos",
+            IsSystem = true
+        };
+        await context.Set<Role>().AddAsync(role);
+
+        var permissionIds = await context.Set<Permission>()
+            .Where(p => OperativoPermissions.Contains(p.Slug))
+            .Select(p => p.Id)
+            .ToListAsync();
+
+        foreach (var permissionId in permissionIds)
+            await context.Set<RolePermission>().AddAsync(new RolePermission { RoleId = role.Id, PermissionId = permissionId });
+
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Returns the permission with the given slug, creating it (and its module, if missing) when needed.
+    /// New entities are tracked but not saved.
+    /// </summary>
+    private static async Task<Permission> EnsurePermissionAsync(
+        DbContext context, string moduleSlug, string moduleName,
+        string permissionName, string permissionSlug, string description)
     {
         var permission = await context.Set<Permission>()
-            .FirstOrDefaultAsync(p => p.Slug == ManageRecommendationsPermission);
+            .FirstOrDefaultAsync(p => p.Slug == permissionSlug);
 
-        if (permission is null)
+        if (permission is not null)
+            return permission;
+
+        var module = await context.Set<Module>().FirstOrDefaultAsync(m => m.Slug == moduleSlug);
+        if (module is null)
         {
-            var module = await context.Set<Module>().FirstOrDefaultAsync(m => m.Slug == RecommendationsModuleSlug);
-            if (module is null)
-            {
-                var maxOrder = await context.Set<Module>().MaxAsync(m => (int?)m.Orden) ?? 0;
-                module = new Module { Nombre = "Recomendaciones", Slug = RecommendationsModuleSlug, Orden = maxOrder + 1 };
-                await context.Set<Module>().AddAsync(module);
-            }
-
-            permission = new Permission
-            {
-                ModuleId = module.Id,
-                Nombre = "Gestionar",
-                Slug = ManageRecommendationsPermission,
-                Descripcion = "Gestionar in Recomendaciones"
-            };
-            await context.Set<Permission>().AddAsync(permission);
+            var maxOrder = await context.Set<Module>().MaxAsync(m => (int?)m.Orden) ?? 0;
+            module = new Module { Nombre = moduleName, Slug = moduleSlug, Orden = maxOrder + 1 };
+            await context.Set<Module>().AddAsync(module);
         }
 
-        var permissionId = permission.Id;
+        permission = new Permission
+        {
+            ModuleId = module.Id,
+            Nombre = permissionName,
+            Slug = permissionSlug,
+            Descripcion = description
+        };
+        await context.Set<Permission>().AddAsync(permission);
+
+        return permission;
+    }
+
+    /// <summary>Grants the permission to each named role that does not have it yet (tracked, not saved).</summary>
+    private static async Task GrantToRolesAsync(DbContext context, Guid permissionId, params string[] roleNames)
+    {
         var roles = await context.Set<Role>()
-            .Where(r => r.Nombre == "SuperAdmin" || r.Nombre == "Admin")
+            .Where(r => roleNames.Contains(r.Nombre))
             .Select(r => new
             {
                 r.Id,
@@ -64,16 +154,14 @@ public static class SeedData
 
         foreach (var role in roles.Where(r => !r.HasPermission))
             await context.Set<RolePermission>().AddAsync(new RolePermission { RoleId = role.Id, PermissionId = permissionId });
-
-        await context.SaveChangesAsync();
     }
 
-    private static async Task SeedRbacAsync(AppDbContext context)
+    private static async Task SeedRbacAsync(DbContext context)
     {
 
-        // Roles
-        var superAdmin = new Role { Nombre = "SuperAdmin", Descripcion = "Full system access", IsSystem = true };
-        var admin = new Role { Nombre = "Admin", Descripcion = "Administrative access", IsSystem = true };
+        // Roles (Operativo is created by EnsureOperativoRoleAsync, which also runs on fresh databases)
+        var superAdmin = new Role { Nombre = SuperAdminRole, Descripcion = "Full system access", IsSystem = true };
+        var admin = new Role { Nombre = AdminRole, Descripcion = "Administrative access", IsSystem = true };
         var cliente = new Role { Nombre = "Cliente", Descripcion = "Regular customer", IsSystem = true };
 
         await context.Set<Role>().AddRangeAsync(superAdmin, admin, cliente);
@@ -110,6 +198,17 @@ public static class SeedData
                 });
             }
         }
+
+        // Extra product permission: toggle variant availability without full edit rights
+        var productsModule = modules.Single(m => m.Slug == ProductsModuleSlug);
+        permissions.Add(new Permission
+        {
+            ModuleId = productsModule.Id,
+            Nombre = "Disponibilidad",
+            Slug = ProductAvailabilityPermission,
+            Descripcion = "Disponibilidad in Productos"
+        });
+
         await context.Set<Permission>().AddRangeAsync(permissions);
 
         // SuperAdmin gets ALL permissions

@@ -6,6 +6,7 @@ using LzDetailingStore.Application.Features.Catalog.Commands.Products.DeleteProd
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.DeleteVariant;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.ManageProductSpecs;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.ManageProductSteps;
+using LzDetailingStore.Application.Features.Catalog.Commands.Products.SetVariantAvailability;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.UpdateProduct;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.UpdateVariant;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.UploadProductImage;
@@ -55,6 +56,14 @@ public sealed class AdminProductEndpoints : IEndpointGroup
 
         products.MapPut("/{productId:guid}/pasos", ManageSteps)
             .RequireAuthorization("productos.editar");
+
+        // Availability lives in its own group: the group above also requires "productos.crear",
+        // and operational staff must be able to toggle availability with only "productos.disponibilidad".
+        var availability = app.MapGroup("/api/v1/admin/productos")
+            .WithTags("Admin - Products");
+
+        availability.MapPatch("/{productId:guid}/variantes/{variantId:guid}/disponibilidad", SetVariantAvailability)
+            .RequireAuthorization("productos.disponibilidad");
     }
 
     private static async Task<IResult> CreateProduct(
@@ -98,6 +107,14 @@ public sealed class AdminProductEndpoints : IEndpointGroup
             return Results.BadRequest(new { error = "ID_MISMATCH", message = "El ID de la ruta no coincide con el del cuerpo." });
 
         var result = await sender.Send(command, ct);
+        return result.ToApiResponse();
+    }
+
+    private static async Task<IResult> SetVariantAvailability(
+        Guid productId, Guid variantId, SetVariantAvailabilityRequest request, ISender sender, CancellationToken ct)
+    {
+        var result = await sender.Send(
+            new SetVariantAvailabilityCommand(productId, variantId, request.Disponible), ct);
         return result.ToApiResponse();
     }
 
@@ -150,3 +167,5 @@ public sealed class AdminProductEndpoints : IEndpointGroup
         return result.ToApiResponse();
     }
 }
+
+public sealed record SetVariantAvailabilityRequest(bool Disponible);

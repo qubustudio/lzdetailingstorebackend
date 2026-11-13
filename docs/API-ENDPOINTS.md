@@ -120,6 +120,17 @@ Stock quantities and cost are never exposed — variants only carry the `disponi
 | DELETE | `/api/v1/admin/productos/imagenes/{id}` | productos.eliminar | Delete image |
 | PUT | `/api/v1/admin/productos/{id}/specs` | productos.editar | Manage specs |
 | PUT | `/api/v1/admin/productos/{id}/pasos` | productos.editar | Manage steps |
+| PATCH | `/api/v1/admin/productos/{productId}/variantes/{variantId}/disponibilidad` | productos.disponibilidad | Mark variant available / sold out |
+
+> Note: every endpoint in the main `/api/v1/admin/productos` group above also requires `productos.crear`
+> (group-level policy). The `disponibilidad` endpoint is mapped outside that group and requires only
+> `productos.disponibilidad` (granted to `SuperAdmin`, `Admin` and `Operativo`).
+
+**`PATCH /{productId}/variantes/{variantId}/disponibilidad`** — body `{ "disponible": true | false }`.
+Stock is an availability flag, not an inventory count: `true` sets the variant's stock to `99` (available),
+`false` sets it to `0` (sold out / on request). Nothing else on the variant changes.
+Response `200` (empty body, same as the other variant updates); `404` "Variante no encontrada." when the
+variant does not exist or does not belong to the product.
 
 ---
 
@@ -159,11 +170,13 @@ The permission is seeded for `SuperAdmin` and `Admin` (not `Cliente`).
 
 ## Admin - Orders (JWT + permissions)
 
+Granted to `SuperAdmin`, `Admin` and `Operativo`.
+
 | Method | Endpoint | Permission | Description |
 |--------|----------|------------|-------------|
-| GET | `/api/v1/admin/pedidos` | pedidos.ver | All orders (filterable by status) |
-| PUT | `/api/v1/admin/pedidos/{id}/status` | pedidos.editar | Change order status |
-| PUT | `/api/v1/admin/pedidos/{id}/tracking` | pedidos.editar | Assign tracking |
+| GET | `/api/v1/admin/pedidos` | ordenes.ver | All orders (filterable by status) |
+| PUT | `/api/v1/admin/pedidos/{id}/status` | ordenes.editar | Change order status |
+| PUT | `/api/v1/admin/pedidos/{id}/tracking` | ordenes.editar | Assign tracking |
 
 ---
 
