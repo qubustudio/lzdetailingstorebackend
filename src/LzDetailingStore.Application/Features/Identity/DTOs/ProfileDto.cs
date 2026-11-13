@@ -5,4 +5,5 @@ public sealed record ProfileDto(
     string Nombre,
     string Email,
     string? Telefono,
-    IList<string> Roles);
+    IList<string> Roles,
+    IList<string> Permisos);

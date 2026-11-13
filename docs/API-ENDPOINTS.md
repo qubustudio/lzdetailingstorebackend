@@ -13,6 +13,26 @@
 | POST | `/api/v1/auth/refresh` | Refresh JWT token |
 | GET | `/api/v1/auth/perfil` | Get authenticated user profile (JWT required) |
 
+### `GET /api/v1/auth/perfil`
+
+Returns the authenticated user's profile, role names and **effective permission slugs**.
+`permisos` is the distinct set of slugs granted through all of the user's roles, sorted ascending;
+it is an empty array when the user has no roles/permissions. **404** when the user no longer exists.
+
+```json
+{
+  "id": "uuid",
+  "nombre": "...",
+  "email": "user@example.com",
+  "telefono": "...",
+  "roles": ["Operativo"],
+  "permisos": ["ordenes.ver", "recomendaciones.gestionar"]
+}
+```
+
+Login, registro and refresh return tokens only (`accessToken`, `refreshToken`, `expiresIn`); call `perfil`
+after authenticating to obtain roles and permissions.
+
 ---
 
 ## Catalog (Public)
