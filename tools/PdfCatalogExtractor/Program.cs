@@ -349,8 +349,8 @@ string Esc(string t) => t.Replace("'", "''").Replace("\r", "").Replace("\n", " "
 (decimal, string) GetSize(string p)
 {
     var u = p.ToUpper();
-    if (u.Contains("19 L") || u.Contains("5 GALONES")) return (19m, "litros");
-    if (u.Contains("3.785") || u.Contains("GALON")) return (3.785m, "litros");
+    if (u.Contains("19 L") || u.Contains("5 GALONES")) return (19m, "L");
+    if (u.Contains("3.785") || u.Contains("GALON")) return (3.785m, "L");
     if (u.Contains("1.893") || u.Contains("64 OZ")) return (1893m, "ml");
     if (u.Contains("946") || u.Contains("32 OZ")) return (946m, "ml");
     if (u.Contains("650") || u.Contains("22 OZ")) return (650m, "ml");

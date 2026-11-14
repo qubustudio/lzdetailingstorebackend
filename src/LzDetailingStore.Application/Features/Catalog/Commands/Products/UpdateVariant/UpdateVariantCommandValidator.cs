@@ -30,6 +30,7 @@ public sealed class UpdateVariantCommandValidator : AbstractValidator<UpdateVari
             .MaximumLength(20);
 
         RuleFor(x => x.Stock)
-            .GreaterThanOrEqualTo(0).WithMessage("El stock no puede ser negativo.");
+            .GreaterThanOrEqualTo(0).WithMessage("El stock no puede ser negativo.")
+            .When(x => x.Stock.HasValue);
     }
 }

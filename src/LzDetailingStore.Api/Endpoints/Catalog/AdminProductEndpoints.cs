@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using LzDetailingStore.Api.Extensions;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.CreateProduct;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.CreateVariant;
@@ -6,11 +7,17 @@ using LzDetailingStore.Application.Features.Catalog.Commands.Products.DeleteProd
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.DeleteVariant;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.ManageProductSpecs;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.ManageProductSteps;
+using LzDetailingStore.Application.Features.Catalog.Commands.Products.SetProductActive;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.SetVariantAvailability;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.UpdateProduct;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.UpdateVariant;
 using LzDetailingStore.Application.Features.Catalog.Commands.Products.UploadProductImage;
+using LzDetailingStore.Application.Features.Catalog.DTOs;
+using LzDetailingStore.Application.Features.Catalog.Queries.GetAdminProductById;
+using LzDetailingStore.Application.Features.Catalog.Queries.GetAdminProducts;
+using LzDetailingStore.Application.Features.Catalog.Queries.GetMeasurementUnits;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 
 namespace LzDetailingStore.Api.Endpoints.Catalog;
 
@@ -18,16 +25,31 @@ public sealed class AdminProductEndpoints : IEndpointGroup
 {
     public void MapEndpoints(IEndpointRouteBuilder app)
     {
+        // The group only requires an authenticated user: policies stack, so a permission here would be
+        // demanded on top of each route's own (e.g. operational staff toggling availability without "crear").
         var products = app.MapGroup("/api/v1/admin/productos")
             .WithTags("Admin - Products")
-            .RequireAuthorization("productos.crear");
+            .RequireAuthorization();
 
         // Products CRUD
+        products.MapGet("/", GetProducts)
+            .RequireAuthorization(AdminProductPermissions.Ver);
+
+        products.MapGet("/{id:guid}", GetProductById)
+            .RequireAuthorization(AdminProductPermissions.Ver);
+
+        // Fixed catalog that feeds the variant size unit dropdown.
+        products.MapGet("/unidades", GetMeasurementUnits)
+            .RequireAuthorization(AdminProductPermissions.Ver);
+
         products.MapPost("/", CreateProduct)
             .RequireAuthorization("productos.crear");
 
         products.MapPut("/{id:guid}", UpdateProduct)
-            .RequireAuthorization("productos.editar");
+            .RequireAuthorization(AdminProductPermissions.Editar);
+
+        products.MapPatch("/{id:guid}/estado", SetProductActive)
+            .RequireAuthorization(AdminProductPermissions.Editar);
 
         products.MapDelete("/{id:guid}", DeleteProduct)
             .RequireAuthorization("productos.eliminar");
@@ -57,13 +79,48 @@ public sealed class AdminProductEndpoints : IEndpointGroup
         products.MapPut("/{productId:guid}/pasos", ManageSteps)
             .RequireAuthorization("productos.editar");
 
-        // Availability lives in its own group: the group above also requires "productos.crear",
-        // and operational staff must be able to toggle availability with only "productos.disponibilidad".
-        var availability = app.MapGroup("/api/v1/admin/productos")
-            .WithTags("Admin - Products");
-
-        availability.MapPatch("/{productId:guid}/variantes/{variantId:guid}/disponibilidad", SetVariantAvailability)
+        // Operational staff toggle availability with only "productos.disponibilidad".
+        products.MapPatch("/{productId:guid}/variantes/{variantId:guid}/disponibilidad", SetVariantAvailability)
             .RequireAuthorization("productos.disponibilidad");
+    }
+
+    private static async Task<IResult> GetProducts(
+        ClaimsPrincipal user, IAuthorizationService authorization, ISender sender, CancellationToken ct,
+        int page = 1, int limit = 20, string? search = null,
+        Guid? brandId = null, Guid? categoryId = null, bool? activo = null)
+    {
+        var incluyeCostos = await CanSeeCostsAsync(user, authorization);
+
+        var query = new GetAdminProductsQuery(page, limit, search, brandId, categoryId, activo, incluyeCostos);
+        var result = await sender.Send(query, ct);
+        return result.ToApiResponse();
+    }
+
+    private static async Task<IResult> GetProductById(
+        Guid id, ClaimsPrincipal user, IAuthorizationService authorization, ISender sender, CancellationToken ct)
+    {
+        var incluyeCostos = await CanSeeCostsAsync(user, authorization);
+
+        var result = await sender.Send(new GetAdminProductByIdQuery(id, incluyeCostos), ct);
+        return result.ToApiResponse();
+    }
+
+    private static async Task<IResult> GetMeasurementUnits(ISender sender, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetMeasurementUnitsQuery(), ct);
+        return result.ToApiResponse();
+    }
+
+    // Cost prices require an extra permission; the permission policy provider resolves it exactly like
+    // RequireAuthorization does (Operativo browses products without seeing costs).
+    private static async Task<bool> CanSeeCostsAsync(ClaimsPrincipal user, IAuthorizationService authorization) =>
+        (await authorization.AuthorizeAsync(user, AdminProductPermissions.Costos)).Succeeded;
+
+    private static async Task<IResult> SetProductActive(
+        Guid id, SetProductActiveRequest request, ISender sender, CancellationToken ct)
+    {
+        var result = await sender.Send(new SetProductActiveCommand(id, request.Activo), ct);
+        return result.ToApiResponse();
     }
 
     private static async Task<IResult> CreateProduct(
@@ -169,3 +226,5 @@ public sealed class AdminProductEndpoints : IEndpointGroup
 }
 
 public sealed record SetVariantAvailabilityRequest(bool Disponible);
+
+public sealed record SetProductActiveRequest(bool Activo);

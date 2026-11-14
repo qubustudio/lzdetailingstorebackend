@@ -7,8 +7,8 @@ namespace LzDetailingStore.ArchTests;
 /// <summary>
 /// Verifica convenciones del dominio: las entidades viven bajo Domain.Entities.{Modulo},
 /// son sealed, y la mayoría hereda de BaseEntity. Las entidades de unión con clave
-/// compuesta (UserRole, RolePermission) están excluidas de la regla de BaseEntity
-/// porque por diseño no la heredan.
+/// compuesta (UserRole, RolePermission) y los catálogos fijos con clave natural
+/// (MeasurementUnit) están excluidos de la regla de BaseEntity porque por diseño no la heredan.
 /// </summary>
 public class DomainConventionTests
 {
@@ -33,7 +33,8 @@ public class DomainConventionTests
     [Fact]
     public void Entidades_ConHerencia_DebenExtenderBaseEntity()
     {
-        // Excluye las entidades de unión (join tables) que por diseño no heredan BaseEntity.
+        // Excluye las entidades de unión (join tables) y los catálogos fijos con clave natural
+        // (MeasurementUnit), que por diseño no heredan BaseEntity.
         var result = Types.InAssembly(ArchTestAssemblies.Domain)
             .That()
             .ResideInNamespaceStartingWith(EntitiesNamespace)
@@ -43,6 +44,8 @@ public class DomainConventionTests
             .DoNotHaveName("UserRole")
             .And()
             .DoNotHaveName("RolePermission")
+            .And()
+            .DoNotHaveName("MeasurementUnit")
             .Should()
             .Inherit(typeof(BaseEntity))
             .GetResult();

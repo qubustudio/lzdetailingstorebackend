@@ -26,6 +26,12 @@ public sealed class CreateVariantCommandHandler(
         if (skuExists)
             return Result<Guid>.Conflict($"Ya existe una variante con el SKU '{request.Sku}'.");
 
+        var unitExists = await dbContext.Set<MeasurementUnit>()
+            .AnyAsync(u => u.Clave == request.SizeUnit, ct);
+
+        if (!unitExists)
+            return Result<Guid>.Failure(new Error("VALIDATION_ERROR", "La unidad de medida no existe."));
+
         var variant = new ProductVariant
         {
             ProductId = product.Id,

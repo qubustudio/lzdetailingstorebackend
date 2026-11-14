@@ -16,6 +16,10 @@ public sealed class ProductVariantConfiguration : IEntityTypeConfiguration<Produ
         builder.Property(v => v.PrecioCosto).HasPrecision(10, 2).IsRequired();
         builder.Property(v => v.SizeValue).HasPrecision(8, 2).IsRequired();
         builder.Property(v => v.SizeUnit).HasMaxLength(20).IsRequired();
+        builder.HasOne<MeasurementUnit>()
+            .WithMany()
+            .HasForeignKey(v => v.SizeUnit)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.Property(v => v.Barcode).HasMaxLength(50);
 
         builder.HasIndex(v => new { v.ProductId, v.IsActive });

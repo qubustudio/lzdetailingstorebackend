@@ -35,6 +35,8 @@ public sealed class CatalogTestContext(DbContextOptions<CatalogTestContext> opti
 
         modelBuilder.Entity<ProductVariant>(b => b.HasKey(v => v.Id));
 
+        modelBuilder.Entity<MeasurementUnit>(b => b.HasKey(u => u.Clave));
+
         modelBuilder.Entity<ProductRelation>(b =>
         {
             b.HasKey(r => r.Id);
