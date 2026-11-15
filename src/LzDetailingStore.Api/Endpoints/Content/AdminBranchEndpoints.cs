@@ -12,7 +12,7 @@ public sealed class AdminBranchEndpoints : IEndpointGroup
     {
         var group = app.MapGroup("/api/v1/admin/sucursales")
             .WithTags("Admin - Branches")
-            .RequireAuthorization("sucursales.crear");
+            .RequireAuthorization();
 
         group.MapPost("/", CreateBranch).RequireAuthorization("sucursales.crear");
         group.MapPut("/{id:guid}", UpdateBranch).RequireAuthorization("sucursales.editar");

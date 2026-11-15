@@ -12,7 +12,7 @@ public sealed class AdminBrandEndpoints : IEndpointGroup
     {
         var group = app.MapGroup("/api/v1/admin/marcas")
             .WithTags("Admin - Brands")
-            .RequireAuthorization("marcas.crear");
+            .RequireAuthorization();
 
         group.MapPost("/", CreateBrand)
             .RequireAuthorization("marcas.crear");

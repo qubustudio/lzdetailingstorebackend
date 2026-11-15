@@ -12,7 +12,7 @@ public sealed class AdminCategoryEndpoints : IEndpointGroup
     {
         var group = app.MapGroup("/api/v1/admin/categorias")
             .WithTags("Admin - Categories")
-            .RequireAuthorization("categorias.crear");
+            .RequireAuthorization();
 
         group.MapPost("/", CreateCategory)
             .RequireAuthorization("categorias.crear");

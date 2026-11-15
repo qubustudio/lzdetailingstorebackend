@@ -12,7 +12,7 @@ public sealed class AdminCourseEndpoints : IEndpointGroup
     {
         var group = app.MapGroup("/api/v1/admin/cursos")
             .WithTags("Admin - Courses")
-            .RequireAuthorization("cursos.crear");
+            .RequireAuthorization();
 
         group.MapPost("/", CreateCourse).RequireAuthorization("cursos.crear");
         group.MapPut("/{id:guid}", UpdateCourse).RequireAuthorization("cursos.editar");
