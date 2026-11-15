@@ -8,6 +8,12 @@ public static class AdminOrderPermissions
     /// Without it every money field is null and <c>incluyeMontos</c> is false (Operativo).
     /// </summary>
     public const string Montos = "ordenes.montos";
+
+    /// <summary>
+    /// Unlocks the buyer's IP and User-Agent captured at checkout, in the admin order detail only.
+    /// Without it both are null and <c>incluyeDatosSeguridad</c> is false.
+    /// </summary>
+    public const string DatosSeguridad = "ordenes.seguridad";
 }
 
 /// <summary>
@@ -30,9 +36,13 @@ public sealed record AdminOrderListItemDto(
     int TotalItems,
     DateTime CreatedAt);
 
-/// <summary>Admin order detail. When <see cref="IncluyeMontos"/> is false every money field is null.</summary>
+/// <summary>
+/// Admin order detail. When <see cref="IncluyeMontos"/> is false every money field is null; when
+/// <see cref="IncluyeDatosSeguridad"/> is false <see cref="ClientIp"/> and <see cref="ClientUserAgent"/> are null.
+/// </summary>
 public sealed record AdminOrderDetailDto(
     bool IncluyeMontos,
+    bool IncluyeDatosSeguridad,
     Guid Id,
     string Status,
     IReadOnlyList<string> AllowedTransitions,
@@ -45,6 +55,8 @@ public sealed record AdminOrderDetailDto(
     string? TrackingUrl,
     string? Notes,
     string? PaymentId,
+    string? ClientIp,
+    string? ClientUserAgent,
     DateTime CreatedAt,
     DateTime UpdatedAt,
     IReadOnlyList<AdminOrderItemDto> Items);

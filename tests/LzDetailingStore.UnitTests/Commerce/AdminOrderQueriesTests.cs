@@ -231,6 +231,48 @@ public sealed class AdminOrderQueriesTests
     }
 
     [Fact]
+    public async Task Detalle_SinPermisoSeguridad_OcultaIpYUserAgent()
+    {
+        var order = AddOrder(_ana, OrderStatus.Pagada, Local(2026, 11, 10, 10));
+        order.ClientIp = "201.141.10.20";
+        order.ClientUserAgent = "Mozilla/5.0";
+        await _ctx.SaveChangesAsync();
+
+        var dto = await Detail(order.Id, incluyeMontos: true);
+
+        dto.IncluyeDatosSeguridad.Should().BeFalse();
+        dto.ClientIp.Should().BeNull();
+        dto.ClientUserAgent.Should().BeNull();
+        dto.IncluyeMontos.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Detalle_ConPermisoSeguridad_MuestraIpYUserAgent()
+    {
+        var order = AddOrder(_ana, OrderStatus.Pagada, Local(2026, 11, 10, 10));
+        order.ClientIp = "201.141.10.20";
+        order.ClientUserAgent = "Mozilla/5.0";
+        await _ctx.SaveChangesAsync();
+
+        var dto = await Detail(order.Id, incluyeMontos: false, incluyeDatosSeguridad: true);
+
+        dto.IncluyeDatosSeguridad.Should().BeTrue();
+        dto.ClientIp.Should().Be("201.141.10.20");
+        dto.ClientUserAgent.Should().Be("Mozilla/5.0");
+        dto.Total.Should().BeNull("security data does not unlock money fields");
+    }
+
+    [Fact]
+    public void ListaAdminYPedidosDelCliente_NoExponenIpNiUserAgent()
+    {
+        var properties = new[] { typeof(AdminOrderListItemDto), typeof(AdminOrderPageDto), typeof(OrderDto), typeof(OrderListDto) }
+            .SelectMany(t => t.GetProperties())
+            .Select(p => p.Name);
+
+        properties.Should().NotContain(["ClientIp", "ClientUserAgent", "IncluyeDatosSeguridad"]);
+    }
+
+    [Fact]
     public async Task Detalle_PedidoInexistente_DevuelveNotFound()
     {
         var result = await new GetAdminOrderByIdQueryHandler(_ctx)
@@ -249,10 +291,10 @@ public sealed class AdminOrderQueriesTests
         return result.Value!;
     }
 
-    private async Task<AdminOrderDetailDto> Detail(Guid id, bool incluyeMontos)
+    private async Task<AdminOrderDetailDto> Detail(Guid id, bool incluyeMontos, bool incluyeDatosSeguridad = false)
     {
         var result = await new GetAdminOrderByIdQueryHandler(_ctx)
-            .Handle(new GetAdminOrderByIdQuery(id, incluyeMontos), CancellationToken.None);
+            .Handle(new GetAdminOrderByIdQuery(id, incluyeMontos, incluyeDatosSeguridad), CancellationToken.None);
         result.IsSuccess.Should().BeTrue();
         return result.Value!;
     }

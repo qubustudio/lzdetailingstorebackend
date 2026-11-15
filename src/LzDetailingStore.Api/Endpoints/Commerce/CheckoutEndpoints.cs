@@ -22,7 +22,12 @@ public sealed class CheckoutEndpoints : IEndpointGroup
         var userId = Guid.Parse(ctx.User.FindFirstValue(ClaimTypes.NameIdentifier)
             ?? ctx.User.FindFirstValue("sub") ?? throw new UnauthorizedAccessException());
 
-        var result = await sender.Send(new CreateCheckoutCommand(userId), ct);
+        // RemoteIpAddress already reflects X-Forwarded-For from trusted proxies (UseForwardedHeaders).
+        // Both values are optional: the handler normalizes them and stores null when missing or invalid.
+        var clientIp = ctx.Connection.RemoteIpAddress?.ToString();
+        var userAgent = ctx.Request.Headers.UserAgent.ToString();
+
+        var result = await sender.Send(new CreateCheckoutCommand(userId, clientIp, userAgent), ct);
         return result.ToApiResponse();
     }
 }

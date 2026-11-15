@@ -33,6 +33,8 @@ public static class SeedData
     public const string OrdersModuleSlug = "ordenes";
     public const string OrderAmountsPermission = "ordenes.montos";
     private const string OrderAmountsDescription = "Ver precios y totales de pedidos";
+    public const string OrderSecurityPermission = "ordenes.seguridad";
+    private const string OrderSecurityDescription = "Ver IP y navegador del comprador en pedidos";
 
     /// <summary>Default permissions granted to the Operativo role when it is created.</summary>
     public static readonly IReadOnlyList<string> OperativoPermissions =
@@ -58,6 +60,7 @@ public static class SeedData
         await EnsureProductAvailabilityPermissionAsync(context);
         await EnsureDashboardSalesPermissionAsync(context);
         await EnsureOrderAmountsPermissionAsync(context);
+        await EnsureOrderSecurityPermissionAsync(context);
         await EnsureOperativoRoleAsync(context);
     }
 
@@ -111,6 +114,20 @@ public static class SeedData
         var permission = await EnsurePermissionAsync(
             context, OrdersModuleSlug, "Ordenes",
             "Montos", OrderAmountsPermission, OrderAmountsDescription);
+
+        await GrantToRolesAsync(context, permission.Id, SuperAdminRole, AdminRole);
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Ensures the <c>ordenes.seguridad</c> permission (buyer's IP and User-Agent in the admin order detail)
+    /// exists, granted to SuperAdmin and Admin only. Operativo never sees this personal data.
+    /// </summary>
+    private static async Task EnsureOrderSecurityPermissionAsync(DbContext context)
+    {
+        var permission = await EnsurePermissionAsync(
+            context, OrdersModuleSlug, "Ordenes",
+            "Seguridad", OrderSecurityPermission, OrderSecurityDescription);
 
         await GrantToRolesAsync(context, permission.Id, SuperAdminRole, AdminRole);
         await context.SaveChangesAsync();
@@ -265,6 +282,15 @@ public static class SeedData
             Nombre = "Montos",
             Slug = OrderAmountsPermission,
             Descripcion = OrderAmountsDescription
+        });
+
+        // Extra orders permission: see the buyer's IP and User-Agent (never granted to Operativo)
+        permissions.Add(new Permission
+        {
+            ModuleId = ordersModule.Id,
+            Nombre = "Seguridad",
+            Slug = OrderSecurityPermission,
+            Descripcion = OrderSecurityDescription
         });
 
         await context.Set<Permission>().AddRangeAsync(permissions);

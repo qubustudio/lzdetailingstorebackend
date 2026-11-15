@@ -73,6 +73,9 @@ public static class DependencyInjection
         // Audit
         services.AddScoped<IAuditService, AuditService>();
 
+        // Privacy: daily cleanup of the buyer's IP/User-Agent on orders past the retention period
+        services.AddHostedService<Jobs.OrderClientInfoRetentionJob>();
+
         return services;
     }
 }

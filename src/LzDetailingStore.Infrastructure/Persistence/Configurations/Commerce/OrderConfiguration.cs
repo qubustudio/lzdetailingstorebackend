@@ -37,6 +37,8 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(o => o.TrackingNumber).HasMaxLength(100);
         builder.Property(o => o.TrackingUrl).HasMaxLength(500);
         builder.Property(o => o.Notes).HasMaxLength(1000);
+        builder.Property(o => o.ClientIp).HasMaxLength(Order.ClientIpMaxLength);
+        builder.Property(o => o.ClientUserAgent).HasMaxLength(Order.ClientUserAgentMaxLength);
 
         builder.HasOne(o => o.ShippingAddress)
             .WithMany()

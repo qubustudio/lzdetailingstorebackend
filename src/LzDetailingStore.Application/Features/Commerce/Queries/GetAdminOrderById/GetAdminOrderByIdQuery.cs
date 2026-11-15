@@ -9,5 +9,9 @@ namespace LzDetailingStore.Application.Features.Commerce.Queries.GetAdminOrderBy
 /// Whether the caller holds <see cref="AdminOrderPermissions.Montos"/>. Resolved by the API layer; defaults to
 /// false so money fields are only returned when explicitly allowed.
 /// </param>
-public sealed record GetAdminOrderByIdQuery(Guid OrderId, bool IncluyeMontos = false)
+/// <param name="IncluyeDatosSeguridad">
+/// Whether the caller holds <see cref="AdminOrderPermissions.DatosSeguridad"/>. Resolved by the API layer;
+/// defaults to false so the buyer's IP and User-Agent are only returned when explicitly allowed.
+/// </param>
+public sealed record GetAdminOrderByIdQuery(Guid OrderId, bool IncluyeMontos = false, bool IncluyeDatosSeguridad = false)
     : IRequest<Result<AdminOrderDetailDto>>;

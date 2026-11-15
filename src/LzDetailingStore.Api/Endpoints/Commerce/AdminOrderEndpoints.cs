@@ -48,8 +48,9 @@ public sealed class AdminOrderEndpoints : IEndpointGroup
         Guid id, ClaimsPrincipal user, IAuthorizationService authorization, ISender sender, CancellationToken ct)
     {
         var incluyeMontos = await CanSeeMoneyAsync(user, authorization);
+        var incluyeDatosSeguridad = await CanSeeSecurityDataAsync(user, authorization);
 
-        var result = await sender.Send(new GetAdminOrderByIdQuery(id, incluyeMontos), ct);
+        var result = await sender.Send(new GetAdminOrderByIdQuery(id, incluyeMontos, incluyeDatosSeguridad), ct);
         return result.ToApiResponse();
     }
 
@@ -57,6 +58,10 @@ public sealed class AdminOrderEndpoints : IEndpointGroup
     // RequireAuthorization does (Operativo manages orders without seeing prices or totals).
     private static async Task<bool> CanSeeMoneyAsync(ClaimsPrincipal user, IAuthorizationService authorization) =>
         (await authorization.AuthorizeAsync(user, AdminOrderPermissions.Montos)).Succeeded;
+
+    // The buyer's IP and User-Agent (personal data) require their own permission, detail endpoint only.
+    private static async Task<bool> CanSeeSecurityDataAsync(ClaimsPrincipal user, IAuthorizationService authorization) =>
+        (await authorization.AuthorizeAsync(user, AdminOrderPermissions.DatosSeguridad)).Succeeded;
 
     private static async Task<IResult> UpdateOrderStatus(
         Guid id, UpdateOrderStatusRequest request, ISender sender, CancellationToken ct)
