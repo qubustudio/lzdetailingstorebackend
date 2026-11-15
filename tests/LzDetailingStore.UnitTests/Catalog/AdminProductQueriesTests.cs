@@ -127,6 +127,37 @@ public sealed class AdminProductQueriesTests
     }
 
     [Fact]
+    public async Task Lista_ConAgotados_SoloProductosConVarianteActivaAgotada()
+    {
+        var conAgotada = await _seed.ProductAsync("Shampoo", stock: 99);
+        AddVariant(conAgotada, Variant("V-AGOTADA", stock: 0));
+        var soloInactivaAgotada = await _seed.ProductAsync("Cera", stock: 99);
+        AddVariant(soloInactivaAgotada, Variant("V-INACTIVA-AGOTADA", stock: 0, active: false));
+        await _seed.ProductAsync("Abrillantador", stock: 99);
+        await _ctx.SaveChangesAsync();
+
+        var page = await List(new GetAdminProductsQuery(ConAgotados: true));
+
+        page.Total.Should().Be(1);
+        page.Data.Should().ContainSingle().Which.Id.Should().Be(conAgotada.Id);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(null)]
+    public async Task Lista_ConAgotadosFalsoONulo_NoFiltra(bool? conAgotados)
+    {
+        var conAgotada = await _seed.ProductAsync("Shampoo", stock: 99);
+        AddVariant(conAgotada, Variant("V-AGOTADA", stock: 0));
+        await _seed.ProductAsync("Cera", stock: 99);
+        await _ctx.SaveChangesAsync();
+
+        var page = await List(new GetAdminProductsQuery(ConAgotados: conAgotados));
+
+        page.Total.Should().Be(2);
+    }
+
+    [Fact]
     public async Task Lista_ReportaIncluyeCostos()
     {
         await _seed.ProductAsync("Shampoo");

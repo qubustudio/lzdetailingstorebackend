@@ -87,11 +87,12 @@ public sealed class AdminProductEndpoints : IEndpointGroup
     private static async Task<IResult> GetProducts(
         ClaimsPrincipal user, IAuthorizationService authorization, ISender sender, CancellationToken ct,
         int page = 1, int limit = 20, string? search = null,
-        Guid? brandId = null, Guid? categoryId = null, bool? activo = null)
+        Guid? brandId = null, Guid? categoryId = null, bool? activo = null,
+        bool? conAgotados = null)
     {
         var incluyeCostos = await CanSeeCostsAsync(user, authorization);
 
-        var query = new GetAdminProductsQuery(page, limit, search, brandId, categoryId, activo, incluyeCostos);
+        var query = new GetAdminProductsQuery(page, limit, search, brandId, categoryId, activo, incluyeCostos, conAgotados);
         var result = await sender.Send(query, ct);
         return result.ToApiResponse();
     }
