@@ -375,6 +375,29 @@ namespace LzDetailingStore.Infrastructure.Migrations
                     b.ToTable("category", (string)null);
                 });
 
+            modelBuilder.Entity("LzDetailingStore.Domain.Entities.Catalog.MeasurementUnit", b =>
+                {
+                    b.Property<string>("Clave")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("clave");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("nombre");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("integer")
+                        .HasColumnName("orden");
+
+                    b.HasKey("Clave")
+                        .HasName("pk_unidad_medida");
+
+                    b.ToTable("unidad_medida", (string)null);
+                });
+
             modelBuilder.Entity("LzDetailingStore.Domain.Entities.Catalog.Product", b =>
                 {
                     b.Property<Guid>("Id")
@@ -763,6 +786,9 @@ namespace LzDetailingStore.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_product_variant");
+
+                    b.HasIndex("SizeUnit")
+                        .HasDatabaseName("ix_product_variant_size_unit");
 
                     b.HasIndex("Sku")
                         .IsUnique()
@@ -1768,6 +1794,13 @@ namespace LzDetailingStore.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_product_variant_product_product_id");
+
+                    b.HasOne("LzDetailingStore.Domain.Entities.Catalog.MeasurementUnit", null)
+                        .WithMany()
+                        .HasForeignKey("SizeUnit")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_product_variant_unidad_medida_size_unit");
 
                     b.Navigation("Product");
                 });

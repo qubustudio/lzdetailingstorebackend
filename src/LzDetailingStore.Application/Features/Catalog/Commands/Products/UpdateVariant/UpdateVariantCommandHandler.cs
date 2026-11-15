@@ -26,16 +26,25 @@ public sealed class UpdateVariantCommandHandler(
         if (skuDuplicate)
             return Result.Conflict($"Ya existe otra variante con el SKU '{request.Sku}'.");
 
+        var unitExists = await dbContext.Set<MeasurementUnit>()
+            .AnyAsync(u => u.Clave == request.SizeUnit, ct);
+
+        if (!unitExists)
+            return Result.Failure(new Error("VALIDATION_ERROR", "La unidad de medida no existe."));
+
         variant.Sku = request.Sku;
         variant.Nombre = request.Nombre;
         variant.PrecioVenta = request.PrecioVenta;
         variant.PrecioCosto = request.PrecioCosto;
         variant.SizeValue = request.SizeValue;
         variant.SizeUnit = request.SizeUnit;
-        variant.Stock = request.Stock;
         variant.Barcode = request.Barcode;
         variant.IsActive = request.IsActive;
         variant.SortOrder = request.SortOrder;
+
+        // Stock is an availability flag: keep it as is when omitted, otherwise normalize to available / sold out.
+        if (request.Stock.HasValue)
+            variant.SetAvailability(request.Stock.Value > 0);
 
         var product = await dbContext.Set<Product>()
             .Include(p => p.Variants)

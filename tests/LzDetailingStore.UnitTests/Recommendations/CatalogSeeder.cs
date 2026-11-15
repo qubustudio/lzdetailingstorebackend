@@ -46,6 +46,22 @@ public sealed class CatalogSeeder(CatalogTestContext ctx)
         return product;
     }
 
+    /// <summary>
+    /// Seeds the fixed measurement unit catalog. Rows are inserted out of order so tests prove the query sorts by
+    /// <see cref="MeasurementUnit.Orden"/>.
+    /// </summary>
+    public void MeasurementUnits()
+    {
+        ctx.AddRange(
+            new MeasurementUnit { Clave = "pza", Nombre = "Pieza", Orden = 5 },
+            new MeasurementUnit { Clave = "ml", Nombre = "Mililitros", Orden = 1 },
+            new MeasurementUnit { Clave = "kit", Nombre = "Kit", Orden = 6 },
+            new MeasurementUnit { Clave = "L", Nombre = "Litros", Orden = 2 },
+            new MeasurementUnit { Clave = "kg", Nombre = "Kilogramos", Orden = 4 },
+            new MeasurementUnit { Clave = "g", Nombre = "Gramos", Orden = 3 });
+        ctx.SaveChanges();
+    }
+
     public async Task<ProductRelation> RelationAsync(
         Product from, Product to, ProductRelationType type,
         ProductRelationStatus status = ProductRelationStatus.Approved,
