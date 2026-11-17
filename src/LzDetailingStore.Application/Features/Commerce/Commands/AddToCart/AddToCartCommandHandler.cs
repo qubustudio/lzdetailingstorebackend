@@ -19,7 +19,7 @@ public sealed class AddToCartCommandHandler(
             .FirstOrDefaultAsync(v => v.Id == request.VariantId && v.IsActive, ct);
 
         if (variant is null)
-            return Result.NotFound("Variante no encontrada o no disponible.");
+            return Result.NotFound("Presentación no encontrada o no disponible.");
 
         if (variant.Stock < request.Quantity)
             return Result.Failure(new Error("INSUFFICIENT_STOCK", 
