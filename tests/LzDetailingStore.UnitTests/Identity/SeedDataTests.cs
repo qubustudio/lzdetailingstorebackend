@@ -105,6 +105,43 @@ public sealed class SeedDataTests
     }
 
     [Fact]
+    public async Task OrdenesSeguridad_SoloParaSuperAdminYAdmin()
+    {
+        await SeedData.SeedAsync(_ctx);
+
+        var permission = await _ctx.Set<Permission>().Include(p => p.Module)
+            .SingleAsync(p => p.Slug == "ordenes.seguridad");
+        permission.Module.Slug.Should().Be("ordenes");
+        permission.Descripcion.Should().Be("Ver IP y navegador del comprador en pedidos");
+
+        (await PermissionsOfAsync("SuperAdmin")).Should().Contain("ordenes.seguridad");
+        (await PermissionsOfAsync("Admin")).Should().Contain("ordenes.seguridad");
+        (await PermissionsOfAsync("Operativo")).Should().Contain("ordenes.ver").And.NotContain("ordenes.seguridad");
+        (await PermissionsOfAsync("Cliente")).Should().NotContain("ordenes.seguridad");
+    }
+
+    [Fact]
+    public async Task BaseExistenteSinOrdenesSeguridad_LoAgregaSoloASuperAdminYAdmin()
+    {
+        // Simulates a database seeded before ordenes.seguridad existed.
+        await SeedData.SeedAsync(_ctx);
+        var security = await _ctx.Set<Permission>().SingleAsync(p => p.Slug == "ordenes.seguridad");
+        _ctx.Set<RolePermission>().RemoveRange(
+            await _ctx.Set<RolePermission>().Where(rp => rp.PermissionId == security.Id).ToListAsync());
+        _ctx.Set<Permission>().Remove(security);
+        await _ctx.SaveChangesAsync();
+        _ctx.ChangeTracker.Clear();
+
+        await SeedData.SeedAsync(_ctx);
+
+        (await _ctx.Set<Permission>().CountAsync(p => p.Slug == "ordenes.seguridad")).Should().Be(1);
+        (await _ctx.Set<Module>().CountAsync(m => m.Slug == "ordenes")).Should().Be(1);
+        (await PermissionsOfAsync("SuperAdmin")).Should().Contain("ordenes.seguridad");
+        (await PermissionsOfAsync("Admin")).Should().Contain("ordenes.seguridad");
+        (await PermissionsOfAsync("Operativo")).Should().NotContain("ordenes.seguridad");
+    }
+
+    [Fact]
     public async Task EjecutarVariasVeces_NoDuplicaRolesPermisosNiAsignaciones()
     {
         await SeedData.SeedAsync(_ctx);

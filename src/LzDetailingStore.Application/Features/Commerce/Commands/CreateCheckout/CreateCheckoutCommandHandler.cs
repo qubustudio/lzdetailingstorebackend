@@ -63,6 +63,8 @@ public sealed class CreateCheckoutCommandHandler(
             ShippingAddressId = address.Id,
             Subtotal = cart.Items.Sum(i => i.Variant.PrecioVenta * i.Quantity),
             ShippingCost = 0, // TODO: Calculate shipping based on address/weight
+            ClientIp = ClientInfoNormalizer.NormalizeIp(request.ClientIp),
+            ClientUserAgent = ClientInfoNormalizer.NormalizeUserAgent(request.ClientUserAgent),
             Items = cart.Items.Select(i => new OrderItem
             {
                 VariantId = i.VariantId,

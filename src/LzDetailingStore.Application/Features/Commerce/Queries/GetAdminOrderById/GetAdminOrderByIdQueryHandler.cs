@@ -37,9 +37,11 @@ public sealed class GetAdminOrderByIdQueryHandler(DbContext dbContext)
             .FirstOrDefaultAsync(ct);
 
         var showMoney = request.IncluyeMontos;
+        var showSecurity = request.IncluyeDatosSeguridad;
 
         return new AdminOrderDetailDto(
             showMoney,
+            showSecurity,
             order.Id,
             order.Status.ToString(),
             OrderStatusMachine.GetAllowedTransitions(order.Status).Select(s => s.ToString()).ToList(),
@@ -52,6 +54,8 @@ public sealed class GetAdminOrderByIdQueryHandler(DbContext dbContext)
             order.TrackingUrl,
             order.Notes,
             order.MercadoPagoPaymentId,
+            showSecurity ? order.ClientIp : null,
+            showSecurity ? order.ClientUserAgent : null,
             order.CreatedAt,
             order.UpdatedAt,
             order.Items

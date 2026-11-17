@@ -32,6 +32,9 @@ builder.Services.AddHealthChecks()
 // Memory Cache
 builder.Services.AddMemoryCache();
 
+// Forwarded headers: real client IP/scheme behind Cloudflare or a reverse proxy (trusted proxies only)
+builder.Services.AddConfiguredForwardedHeaders(builder.Configuration);
+
 // App Settings
 builder.Services.Configure<LzDetailingStore.Application.Features.Commerce.Commands.CreateCheckout.AppSettings>(
     builder.Configuration.GetSection("App"));
@@ -139,6 +142,8 @@ var app = builder.Build();
 await LzDetailingStore.Infrastructure.Persistence.Seed.SeedData.InitializeAsync(app.Services);
 
 // Middleware pipeline (order matters!)
+// Forwarded headers first, so every later component sees the real client IP and scheme.
+app.UseForwardedHeaders();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
