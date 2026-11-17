@@ -4,8 +4,8 @@ using Microsoft.EntityFrameworkCore;
 namespace LzDetailingStore.UnitTests.Recommendations;
 
 /// <summary>
-/// Minimal in-memory DbContext for the product-relation handlers. Registers only the catalog
-/// entities they touch and ignores navigations (images, specs, steps) that are not needed.
+/// Minimal in-memory DbContext for the catalog and product-relation handlers. Registers only the catalog
+/// entities they touch; images, specs and steps are mapped so the public product detail query can include them.
 /// </summary>
 public sealed class CatalogTestContext(DbContextOptions<CatalogTestContext> options) : DbContext(options)
 {
@@ -25,9 +25,9 @@ public sealed class CatalogTestContext(DbContextOptions<CatalogTestContext> opti
         modelBuilder.Entity<Product>(b =>
         {
             b.HasKey(p => p.Id);
-            b.Ignore(p => p.Images);
-            b.Ignore(p => p.Specs);
-            b.Ignore(p => p.ApplicationSteps);
+            b.HasMany(p => p.Images).WithOne().HasForeignKey(i => i.ProductId);
+            b.HasMany(p => p.Specs).WithOne().HasForeignKey(s => s.ProductId);
+            b.HasMany(p => p.ApplicationSteps).WithOne().HasForeignKey(a => a.ProductId);
             b.HasOne(p => p.Brand).WithMany(x => x.Products).HasForeignKey(p => p.BrandId);
             b.HasOne(p => p.Category).WithMany(x => x.Products).HasForeignKey(p => p.CategoryId);
             b.HasMany(p => p.Variants).WithOne(v => v.Product).HasForeignKey(v => v.ProductId);
