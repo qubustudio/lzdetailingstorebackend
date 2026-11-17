@@ -25,7 +25,7 @@ public sealed class UpdateCartItemCommandHandler(
             .FirstOrDefaultAsync(v => v.Id == cartItem.VariantId, ct);
 
         if (variant is null || !variant.IsActive)
-            return Result.NotFound("Variante no disponible.");
+            return Result.NotFound("Presentación no disponible.");
 
         if (request.Quantity > variant.Stock)
             return Result.Failure(new Error("INSUFFICIENT_STOCK",

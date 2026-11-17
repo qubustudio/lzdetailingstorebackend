@@ -47,6 +47,46 @@ public sealed class CatalogSeeder(CatalogTestContext ctx)
     }
 
     /// <summary>
+    /// Seeds an active product with the given presentations (price, stock flag, active). An empty list seeds a
+    /// product without variants. <paramref name="createdAt"/> lets tests control the default catalog order.
+    /// </summary>
+    public async Task<Product> ProductWithVariantsAsync(
+        string name, DateTime? createdAt = null, params (decimal Precio, int Stock, bool Active)[] variants)
+    {
+        _sku++;
+        var product = new Product
+        {
+            Sku = $"P-{_sku}",
+            Name = name,
+            Slug = $"producto-{_sku}",
+            ImageUrl = "https://cdn/img.png",
+            IsActive = true,
+            CreatedAt = createdAt ?? DateTime.UtcNow,
+            // Stored value deliberately stale: public queries must compute the "desde" price themselves.
+            PrecioBase = 1m,
+            Brand = _brand,
+            Category = _category,
+            Variants = variants
+                .Select((v, i) => new ProductVariant
+                {
+                    Sku = $"V-{_sku}-{i}",
+                    Nombre = $"Presentación {i + 1}",
+                    PrecioVenta = v.Precio,
+                    SizeValue = 500,
+                    SizeUnit = "ml",
+                    Stock = v.Stock,
+                    IsActive = v.Active,
+                    SortOrder = i
+                })
+                .ToList()
+        };
+
+        ctx.Add(product);
+        await ctx.SaveChangesAsync();
+        return product;
+    }
+
+    /// <summary>
     /// Seeds the fixed measurement unit catalog. Rows are inserted out of order so tests prove the query sorts by
     /// <see cref="MeasurementUnit.Orden"/>.
     /// </summary>

@@ -88,11 +88,11 @@ public sealed class AdminProductEndpoints : IEndpointGroup
         ClaimsPrincipal user, IAuthorizationService authorization, ISender sender, CancellationToken ct,
         int page = 1, int limit = 20, string? search = null,
         Guid? brandId = null, Guid? categoryId = null, bool? activo = null,
-        bool? conAgotados = null)
+        string? agotados = null)
     {
         var incluyeCostos = await CanSeeCostsAsync(user, authorization);
 
-        var query = new GetAdminProductsQuery(page, limit, search, brandId, categoryId, activo, incluyeCostos, conAgotados);
+        var query = new GetAdminProductsQuery(page, limit, search, brandId, categoryId, activo, incluyeCostos, agotados);
         var result = await sender.Send(query, ct);
         return result.ToApiResponse();
     }

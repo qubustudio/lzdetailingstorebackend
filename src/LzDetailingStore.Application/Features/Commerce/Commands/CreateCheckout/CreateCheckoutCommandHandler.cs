@@ -48,7 +48,7 @@ public sealed class CreateCheckoutCommandHandler(
             if (!item.Variant.IsActive)
                 return Result<CheckoutResultDto>.Failure(
                     new Error("VARIANT_UNAVAILABLE",
-                        $"La variante '{item.Variant.Nombre}' ya no está disponible."));
+                        $"La presentación '{item.Variant.Nombre}' ya no está disponible."));
 
             if (item.Quantity > item.Variant.Stock)
                 return Result<CheckoutResultDto>.Failure(

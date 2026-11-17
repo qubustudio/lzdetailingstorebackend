@@ -127,7 +127,7 @@ public sealed class AdminProductQueriesTests
     }
 
     [Fact]
-    public async Task Lista_ConAgotados_SoloProductosConVarianteActivaAgotada()
+    public async Task Lista_AgotadosAlguno_SoloProductosConVarianteActivaAgotada()
     {
         var conAgotada = await _seed.ProductAsync("Shampoo", stock: 99);
         AddVariant(conAgotada, Variant("V-AGOTADA", stock: 0));
@@ -136,23 +136,39 @@ public sealed class AdminProductQueriesTests
         await _seed.ProductAsync("Abrillantador", stock: 99);
         await _ctx.SaveChangesAsync();
 
-        var page = await List(new GetAdminProductsQuery(ConAgotados: true));
+        var page = await List(new GetAdminProductsQuery(Agotados: "alguno"));
 
         page.Total.Should().Be(1);
         page.Data.Should().ContainSingle().Which.Id.Should().Be(conAgotada.Id);
     }
 
+    [Fact]
+    public async Task Lista_AgotadosCompleto_SoloProductosSinVarianteActivaDisponible()
+    {
+        var todoAgotado = await _seed.ProductAsync("Shampoo", stock: 0);
+        var parcial = await _seed.ProductAsync("Cera", stock: 99);
+        AddVariant(parcial, Variant("V-AGOTADA", stock: 0));
+        var soloInactivaDisponible = await _seed.ProductAsync("Abrillantador", stock: 0);
+        AddVariant(soloInactivaDisponible, Variant("V-INACTIVA-DISPONIBLE", stock: 99, active: false));
+        await _seed.ProductAsync("Desengrasante", stock: 99);
+        await _ctx.SaveChangesAsync();
+
+        var page = await List(new GetAdminProductsQuery(Agotados: " COMPLETO "));
+
+        page.Data.Select(p => p.Id).Should().BeEquivalentTo(new[] { todoAgotado.Id, soloInactivaDisponible.Id });
+    }
+
     [Theory]
-    [InlineData(false)]
+    [InlineData("")]
     [InlineData(null)]
-    public async Task Lista_ConAgotadosFalsoONulo_NoFiltra(bool? conAgotados)
+    public async Task Lista_AgotadosVacioONulo_NoFiltra(string? agotados)
     {
         var conAgotada = await _seed.ProductAsync("Shampoo", stock: 99);
         AddVariant(conAgotada, Variant("V-AGOTADA", stock: 0));
         await _seed.ProductAsync("Cera", stock: 99);
         await _ctx.SaveChangesAsync();
 
-        var page = await List(new GetAdminProductsQuery(ConAgotados: conAgotados));
+        var page = await List(new GetAdminProductsQuery(Agotados: agotados));
 
         page.Total.Should().Be(2);
     }

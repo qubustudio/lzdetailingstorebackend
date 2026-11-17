@@ -17,7 +17,7 @@ public sealed class SetVariantAvailabilityCommandHandler(
             .FirstOrDefaultAsync(v => v.Id == request.VariantId && v.ProductId == request.ProductId, ct);
 
         if (variant is null)
-            return Result.NotFound("Variante no encontrada.");
+            return Result.NotFound("Presentación no encontrada.");
 
         variant.SetAvailability(request.Disponible);
 

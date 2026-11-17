@@ -18,14 +18,16 @@ public sealed class GetProductBySlugQueryHandler(DbContext dbContext)
             .Include(p => p.Images.OrderBy(i => i.Orden))
             .Include(p => p.Specs.OrderBy(s => s.Orden))
             .Include(p => p.ApplicationSteps.OrderBy(a => a.StepNumber))
-            .FirstOrDefaultAsync(p => p.Slug == request.Slug && p.IsActive, ct);
+            .Where(PublicCatalog.IsListed)
+            .FirstOrDefaultAsync(p => p.Slug == request.Slug, ct);
 
+        // A product without visible presentations is treated as missing, like an inactive one.
         if (product is null)
             return Result<ProductDto>.NotFound("Product not found");
 
         var dto = new ProductDto(
             product.Id, product.Sku, product.Name, product.Slug, product.Description,
-            product.PrecioBase, product.PrecioOriginal,
+            PublicCatalog.PrecioDesde(product.Variants), product.PrecioOriginal,
             product.ImageUrl, product.ImageAlt, product.Rating, product.ReviewCount,
             product.Badge,
             new BrandDto(product.Brand.Id, product.Brand.Nombre, product.Brand.Slug,

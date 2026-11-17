@@ -24,7 +24,7 @@ public sealed class CreateVariantCommandHandler(
             .AnyAsync(v => v.Sku.ToLower() == request.Sku.ToLower(), ct);
 
         if (skuExists)
-            return Result<Guid>.Conflict($"Ya existe una variante con el SKU '{request.Sku}'.");
+            return Result<Guid>.Conflict($"Ya existe una presentación con el SKU '{request.Sku}'.");
 
         var unitExists = await dbContext.Set<MeasurementUnit>()
             .AnyAsync(u => u.Clave == request.SizeUnit, ct);

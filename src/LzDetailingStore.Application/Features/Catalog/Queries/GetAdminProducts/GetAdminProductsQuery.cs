@@ -11,9 +11,10 @@ namespace LzDetailingStore.Application.Features.Catalog.Queries.GetAdminProducts
 /// Whether the caller holds <see cref="AdminProductPermissions.Costos"/>. Resolved by the API layer; defaults to
 /// false so cost visibility is only reported when explicitly allowed.
 /// </param>
-/// <param name="ConAgotados">
-/// When true, only products with at least one active sold-out variant (the same rule as VariantesAgotadas);
-/// false or null applies no filter.
+/// <param name="Agotados">
+/// Sold-out filter (case-insensitive): <see cref="AgotadosCompleto"/> keeps products with no available active variant
+/// (the same rule as the dashboard "Productos agotados" tile); <see cref="AgotadosAlguno"/> keeps products with at
+/// least one active sold-out variant (the same rule as VariantesAgotadas). Null or empty applies no filter.
 /// </param>
 public sealed record GetAdminProductsQuery(
     int Page = 1,
@@ -23,8 +24,10 @@ public sealed record GetAdminProductsQuery(
     Guid? CategoryId = null,
     bool? Activo = null,
     bool IncluyeCostos = false,
-    bool? ConAgotados = null)
+    string? Agotados = null)
     : IRequest<Result<AdminProductPageDto>>
 {
     public const int SearchMaxLength = 100;
+    public const string AgotadosCompleto = "completo";
+    public const string AgotadosAlguno = "alguno";
 }

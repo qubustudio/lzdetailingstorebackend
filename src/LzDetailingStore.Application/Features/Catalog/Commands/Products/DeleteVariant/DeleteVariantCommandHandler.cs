@@ -17,7 +17,7 @@ public sealed class DeleteVariantCommandHandler(
             .FirstOrDefaultAsync(v => v.Id == request.Id, ct);
 
         if (variant is null)
-            return Result.NotFound("Variante no encontrada.");
+            return Result.NotFound("Presentación no encontrada.");
 
         variant.IsActive = false;
 

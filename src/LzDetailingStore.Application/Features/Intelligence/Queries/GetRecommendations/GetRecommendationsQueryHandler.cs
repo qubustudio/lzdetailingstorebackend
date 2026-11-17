@@ -1,3 +1,4 @@
+using LzDetailingStore.Application.Features.Catalog;
 using LzDetailingStore.Application.Features.Catalog.DTOs;
 using LzDetailingStore.Application.Features.Intelligence.DTOs;
 using LzDetailingStore.Domain.Entities.Catalog;
@@ -11,6 +12,7 @@ namespace LzDetailingStore.Application.Features.Intelligence.Queries.GetRecommen
 /// <summary>
 /// Returns the curated (approved) relations of a product, split by type.
 /// Only related products that are visible (active with at least one active variant in stock) are returned.
+/// A source product that the store does not list (inactive or without visible variants) returns 404.
 /// </summary>
 public sealed class GetRecommendationsQueryHandler(DbContext dbContext)
     : IRequestHandler<GetRecommendationsQuery, Result<ProductRecommendationsDto>>
@@ -21,7 +23,8 @@ public sealed class GetRecommendationsQueryHandler(DbContext dbContext)
         GetRecommendationsQuery request, CancellationToken ct)
     {
         var productExists = await dbContext.Set<Product>()
-            .AnyAsync(p => p.Id == request.ProductId && p.IsActive, ct);
+            .Where(PublicCatalog.IsListed)
+            .AnyAsync(p => p.Id == request.ProductId, ct);
 
         if (!productExists)
             return Result<ProductRecommendationsDto>.NotFound("Producto no encontrado.");
@@ -40,7 +43,9 @@ public sealed class GetRecommendationsQueryHandler(DbContext dbContext)
                 r.Type,
                 Product = new RecommendedProductDto(
                     r.RelatedProduct.Id, r.RelatedProduct.Name, r.RelatedProduct.Slug, r.RelatedProduct.Description,
-                    r.RelatedProduct.PrecioBase, r.RelatedProduct.PrecioOriginal,
+                    // Related products always have an available variant, so "desde" is the cheapest available one.
+                    r.RelatedProduct.Variants.Where(v => v.IsActive && v.Stock > 0).Min(v => (decimal?)v.PrecioVenta),
+                    r.RelatedProduct.PrecioOriginal,
                     r.RelatedProduct.ImageUrl, r.RelatedProduct.ImageAlt, r.RelatedProduct.Badge,
                     r.RelatedProduct.Brand.Nombre, r.RelatedProduct.Category.Nombre,
                     r.RelatedProduct.Variants

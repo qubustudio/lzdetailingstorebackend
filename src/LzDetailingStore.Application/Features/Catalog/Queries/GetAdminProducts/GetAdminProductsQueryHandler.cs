@@ -22,8 +22,15 @@ public sealed class GetAdminProductsQueryHandler(DbContext dbContext)
             query = query.Where(p => p.BrandId == request.BrandId.Value);
         if (request.CategoryId.HasValue)
             query = query.Where(p => p.CategoryId == request.CategoryId.Value);
-        if (request.ConAgotados == true)
-            query = query.Where(p => p.Variants.Any(v => v.IsActive && v.Stock <= 0));
+        switch (request.Agotados?.Trim().ToLowerInvariant())
+        {
+            case GetAdminProductsQuery.AgotadosCompleto:
+                query = query.Where(p => !p.Variants.Any(v => v.IsActive && v.Stock > 0));
+                break;
+            case GetAdminProductsQuery.AgotadosAlguno:
+                query = query.Where(p => p.Variants.Any(v => v.IsActive && v.Stock <= 0));
+                break;
+        }
 
         var search = request.Search?.Trim().ToLowerInvariant();
         if (!string.IsNullOrEmpty(search))

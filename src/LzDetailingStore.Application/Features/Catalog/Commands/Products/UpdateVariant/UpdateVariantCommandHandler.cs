@@ -17,14 +17,14 @@ public sealed class UpdateVariantCommandHandler(
             .FirstOrDefaultAsync(v => v.Id == request.Id, ct);
 
         if (variant is null)
-            return Result.NotFound("Variante no encontrada.");
+            return Result.NotFound("Presentación no encontrada.");
 
         var skuDuplicate = await dbContext.Set<ProductVariant>()
             .AnyAsync(v => v.Id != request.Id
                 && v.Sku.ToLower() == request.Sku.ToLower(), ct);
 
         if (skuDuplicate)
-            return Result.Conflict($"Ya existe otra variante con el SKU '{request.Sku}'.");
+            return Result.Conflict($"Ya existe otra presentación con el SKU '{request.Sku}'.");
 
         var unitExists = await dbContext.Set<MeasurementUnit>()
             .AnyAsync(u => u.Clave == request.SizeUnit, ct);
